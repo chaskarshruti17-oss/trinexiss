@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  --color-brand-purple: #5B21B6;
+  --color-brand-pink: #9D174D;
+  --color-brand-blue: #00AEEF;
+  --color-brand-dark: #08080F;
+}
+
+@layer base {
+  body {
+    @apply bg-purple-50/30 text-slate-900 font-sans antialiased selection:bg-brand-purple/20;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-3xl;
+  }
+  
+  .btn-gradient {
+    @apply bg-gradient-to-r from-brand-purple to-brand-pink text-white px-8 py-3 rounded-full font-medium transition-all hover:scale-105 hover:shadow-lg active:scale-95;
+  }
+
+  .bg-vibrant-gradient {
+    @apply bg-gradient-to-br from-brand-purple/5 via-brand-pink/5 to-white;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-purple to-brand-pink;
+  }
+
+  .heading-purple {
+    @apply font-display text-brand-purple font-bold tracking-tight;
+  }
+}
