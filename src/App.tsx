@@ -35,6 +35,7 @@ import {
   Database,
   Layers,
   Zap,
+  Triangle,
   BarChart,
   Inbox,
   Package,
@@ -70,12 +71,101 @@ interface DetailItem {
   solution?: string;
   industry?: string;
   process?: string;
+  deepDive?: {
+    overview?: string;
+    sections: {
+      title: string;
+      explanation: string;
+      list?: string[];
+      example?: string;
+      businessValue?: string[];
+      icon?: string;
+    }[];
+  };
 }
 
 // --- Shared Components ---
 
 const Modal = ({ item, onClose, onApply }: { item: DetailItem | null; onClose: () => void; onApply?: () => void }) => {
+  const [showDeepDive, setShowDeepDive] = useState(false);
+
   if (!item) return null;
+
+  const DeepDiveView = () => {
+    if (!item.deepDive) return null;
+    return (
+      <div className="space-y-12 pb-20">
+        {item.deepDive.overview && (
+          <div className="bg-purple-50 p-8 rounded-[2rem] border border-purple-100">
+            <h4 className="text-xl font-display font-bold text-slate-900 mb-4 uppercase tracking-tight">Overview</h4>
+            <p className="text-slate-700 leading-relaxed text-lg">{item.deepDive.overview}</p>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-10">
+          {item.deepDive.sections.map((section, idx) => (
+            <div key={idx} className="relative group">
+              <div className="absolute -left-4 top-0 bottom-0 w-1 bg-brand-purple rounded-full opacity-30 group-hover:opacity-100 transition-opacity" />
+              <div className="pl-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-3xl">{section.icon || '🚀'}</span>
+                  <h4 className="text-2xl font-display font-bold text-slate-800 tracking-tight">{section.title}</h4>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <h5 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-4">Detailed Explanation</h5>
+                    <p className="text-slate-600 text-lg leading-relaxed">{section.explanation}</p>
+                  </div>
+
+                  {section.list && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {section.list.map((li, i) => (
+                        <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <CheckCircle2 size={16} className="text-brand-purple shrink-0" />
+                          <span className="text-slate-700 font-medium text-sm">{li}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {section.example && (
+                    <div className="bg-purple-50/50 p-6 rounded-3xl border border-purple-100/50">
+                      <div className="flex items-center gap-2 text-brand-purple font-bold text-[10px] uppercase tracking-widest mb-3">
+                        <Lightbulb size={14} /> Example Scenario
+                      </div>
+                      <p className="text-slate-800 font-medium leading-relaxed italic">
+                        {section.example}
+                      </p>
+                    </div>
+                  )}
+
+                  {section.businessValue && (
+                    <div>
+                      <h5 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-4">Business Value</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {section.businessValue.map((v, i) => (
+                          <span key={i} className="px-5 py-2.5 bg-brand-purple/10 text-brand-purple rounded-full text-xs font-bold border border-brand-purple/20 uppercase tracking-wider">
+                            {v}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button 
+          onClick={() => setShowDeepDive(false)}
+          className="flex items-center gap-2 text-slate-400 font-bold text-sm uppercase tracking-widest hover:text-brand-purple transition-colors"
+        >
+          <ArrowRight className="rotate-180" size={16} /> Back to Summary
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -90,7 +180,7 @@ const Modal = ({ item, onClose, onApply }: { item: DetailItem | null; onClose: (
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="relative bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
       >
         <button 
           onClick={onClose}
@@ -99,157 +189,212 @@ const Modal = ({ item, onClose, onApply }: { item: DetailItem | null; onClose: (
           <X size={24} />
         </button>
 
-        <div className="overflow-y-auto">
-          {item.image && (
+        <div className="overflow-y-auto custom-scrollbar">
+          {!showDeepDive && item.image && (
             <div className="w-full aspect-[21/9] overflow-hidden relative">
                <img src={item.image} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
             </div>
           )}
-          <div className={`p-8 lg:p-14 -mt-10 relative z-10 rounded-t-[2.5rem] ${item.modalBg || 'bg-white'}`}>
-            <div className="flex items-center gap-5 mb-8">
-              {item.icon && (
-                <div className="w-14 h-14 bg-brand-purple/10 text-brand-purple rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
-                  {React.cloneElement(item.icon as React.ReactElement, { size: 32 })}
-                </div>
-              )}
-              {item.industry && (
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
-                  <Globe size={12} /> {item.industry}
-                </div>
-              )}
-              <h2 className="text-3xl lg:text-4xl font-display font-bold text-slate-900 tracking-tight">{item.title}</h2>
-            </div>
-            
-            <div className="space-y-8">
-              {item.problem && (
-                <section>
-                  <h4 className="text-[10px] font-bold text-brand-pink uppercase tracking-[0.2em] mb-3">The Challenge</h4>
-                  <div className="p-6 bg-pink-50 border border-pink-100 rounded-3xl">
-                    <p className="text-slate-700 text-lg leading-relaxed font-medium italic">
-                      "{item.problem}"
-                    </p>
+          
+          <div className={`p-8 lg:p-14 ${!showDeepDive && item.image ? '-mt-10' : ''} relative z-10 rounded-t-[2.5rem] ${item.modalBg || 'bg-white'}`}>
+            <AnimatePresence mode="wait">
+              {!showDeepDive ? (
+                <motion.div
+                  key="summary"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <div className="flex items-center gap-5 mb-8">
+                    {item.icon && (
+                      <div className="w-14 h-14 bg-brand-purple/10 text-brand-purple rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                        {React.isValidElement(item.icon) 
+                          ? React.cloneElement(item.icon as React.ReactElement, { size: 32 })
+                          : <span className="text-2xl">{item.icon}</span>
+                        }
+                      </div>
+                    )}
+                    {item.industry && (
+                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
+                        <Globe size={12} /> {item.industry}
+                      </div>
+                    )}
+                    <h2 className="text-3xl lg:text-4xl font-display font-bold text-slate-900 tracking-tight">{item.title}</h2>
                   </div>
-                </section>
-              )}
+                  
+                  <div className="space-y-8">
+                    {item.problem && (
+                      <section>
+                        <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-3">The Challenge</h4>
+                        <div className="p-6 bg-purple-50 border border-purple-100 rounded-3xl">
+                          <p className="text-slate-700 text-lg leading-relaxed font-medium italic">
+                            "{item.problem}"
+                          </p>
+                        </div>
+                      </section>
+                    )}
 
-              {item.solution && (
-                <section>
-                  <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-3">Our Solution</h4>
-                  <div className="p-6 bg-purple-50 border border-purple-100 rounded-3xl">
-                    <p className="text-slate-800 text-lg leading-relaxed font-bold">
-                      {item.solution}
-                    </p>
-                  </div>
-                </section>
-              )}
+                    {item.solution && (
+                      <section>
+                        <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-3">Our Solution</h4>
+                        <div className="p-6 bg-purple-50 border border-purple-100 rounded-3xl">
+                          <p className="text-slate-800 text-lg leading-relaxed font-bold">
+                            {item.solution}
+                          </p>
+                        </div>
+                      </section>
+                    )}
 
-              {!item.problem && !item.solution && (
-                <section>
-                  <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-3">Overview</h4>
-                  <p className="text-slate-600 text-lg leading-relaxed font-normal">
-                    {item.longDesc || item.desc}
-                  </p>
-                </section>
-              )}
+                    {!item.problem && !item.solution && (
+                      <section>
+                        <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-3">Overview</h4>
+                        <p className="text-slate-600 text-lg leading-relaxed font-normal">
+                          {item.longDesc || item.desc}
+                        </p>
+                      </section>
+                    )}
 
-              {item.subItems && item.subItems.length > 0 && (
-                <div className="space-y-6">
-                   {item.subItems.map((sub, idx) => {
-                     const isObj = typeof sub !== 'string';
-                     const s = isObj ? sub as DetailSubItem : { title: sub as string, detail: '', example: '' };
-                     return (
-                       <div key={idx} className="p-8 bg-white/60 border border-black/5 rounded-[2rem] backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
-                         <h5 className="font-display font-bold text-xl text-slate-900 mb-3 tracking-tight">{s.title}</h5>
-                         {s.detail && <p className="text-slate-500 text-base leading-relaxed mb-4">{s.detail}</p>}
-                         {s.example && (
-                            <div className="bg-brand-purple/5 border border-brand-purple/10 p-4 rounded-2xl flex items-start gap-3">
-                              <Zap size={16} className="text-brand-purple mt-1 shrink-0" />
-                              <p className="text-brand-purple text-sm font-medium">{s.example}</p>
+                    {item.subItems && item.subItems.length > 0 && (
+                      <div className="space-y-6">
+                        {item.subItems.map((sub, idx) => {
+                          const isObj = typeof sub !== 'string';
+                          const s = isObj ? sub as DetailSubItem : { title: sub as string, detail: '', example: '' };
+                          return (
+                            <div key={idx} className="p-8 bg-white/60 border border-black/5 rounded-[2rem] backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
+                              <h5 className="font-display font-bold text-xl text-slate-900 mb-3 tracking-tight">{s.title}</h5>
+                              {s.detail && <p className="text-slate-500 text-base leading-relaxed mb-4">{s.detail}</p>}
+                              {s.example && (
+                                  <div className="bg-brand-purple/5 border border-brand-purple/10 p-4 rounded-2xl flex items-start gap-3">
+                                    <Zap size={16} className="text-brand-purple mt-1 shrink-0" />
+                                    <p className="text-brand-purple text-sm font-medium">{s.example}</p>
+                                  </div>
+                              )}
                             </div>
-                         )}
-                       </div>
-                     )
-                   })}
-                </div>
-              )}
+                          )
+                        })}
+                      </div>
+                    )}
 
-              {item.process && (
-                <section>
-                  <h4 className="text-[10px] font-bold text-brand-blue uppercase tracking-[0.2em] mb-3">Workflow Process</h4>
-                  <div className="p-6 bg-blue-50 border border-blue-100 rounded-3xl">
-                    <p className="text-brand-blue text-sm font-bold tracking-tight uppercase mb-2 flex items-center gap-2">
-                       <Zap size={14} /> Pipeline Strategy
-                    </p>
-                    <p className="text-slate-700 text-base leading-relaxed">
-                      {item.process}
-                    </p>
+                    {item.process && (
+                      <section>
+                        <h4 className="text-[10px] font-bold text-brand-purple uppercase tracking-[0.2em] mb-4">Implementation Workflow</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {item.process.split(' | ').map((step, idx) => (
+                            <div key={idx} className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl flex items-start gap-3">
+                              <div className="w-6 h-6 rounded-full bg-brand-purple text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                                {idx + 1}
+                              </div>
+                              <p className="text-slate-800 text-sm font-bold leading-tight">{step}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {item.example && (
+                      <section className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                        <h4 className="text-[10px] font-bold text-brand-pink uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                          <Lightbulb size={14} /> Real-World Example
+                        </h4>
+                        <p className="text-slate-700 leading-relaxed">
+                          "{item.example}"
+                        </p>
+                      </section>
+                    )}
+
+                    {item.result && (
+                      <section className="bg-brand-blue/5 border border-brand-blue/10 p-6 rounded-2xl">
+                        <span className="text-[10px] font-bold text-brand-blue uppercase tracking-widest block mb-2">Key Result</span>
+                        <p className="text-slate-800 font-bold text-xl tracking-tight">{item.result}</p>
+                      </section>
+                    )}
+
+                    {item.tags && (
+                      <div className="flex flex-wrap gap-2 pt-4">
+                        {item.tags.map(tag => (
+                          <span key={tag} className="px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </section>
-              )}
 
-              {item.example && (
-                <section className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
-                  <h4 className="text-[10px] font-bold text-brand-pink uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                    <Lightbulb size={14} /> Real-World Example
-                  </h4>
-                  <p className="text-slate-700 leading-relaxed">
-                    "{item.example}"
-                  </p>
-                </section>
+                  <div className="mt-14 pt-8 border-t border-slate-100 flex justify-between items-center gap-4">
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest hidden sm:block">Trinexiss Intelligence Hub</p>
+                    <div className="flex gap-4 ml-auto">
+                      <button 
+                        onClick={onClose}
+                        className="px-8 py-3 rounded-full border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all text-sm mb-safe"
+                      >
+                        Close
+                      </button>
+                      {item.isJob && (
+                        <button 
+                          onClick={onApply}
+                          className="btn-gradient !px-10 shadow-xl shadow-brand-purple/20 mb-safe"
+                        >
+                          Apply Now
+                        </button>
+                      )}
+                      {!item.isJob && item.deepDive && (
+                        <button 
+                          onClick={() => setShowDeepDive(true)}
+                          className="btn-gradient !px-10 mb-safe"
+                        >
+                          Explore More
+                        </button>
+                      )}
+                      {!item.isJob && !item.deepDive && (
+                        <button 
+                          onClick={onClose}
+                          className="btn-gradient !px-10 mb-safe"
+                        >
+                          Explore More
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="deepdive"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <div className="flex items-center gap-5 mb-8">
+                    {item.icon && (
+                      <div className="w-14 h-14 bg-brand-purple/10 text-brand-purple rounded-2xl flex items-center justify-center shrink-0">
+                        {React.isValidElement(item.icon)
+                          ? React.cloneElement(item.icon as React.ReactElement, { size: 32 })
+                          : <span className="text-2xl">{item.icon}</span>
+                        }
+                      </div>
+                    )}
+                    <h2 className="text-3xl lg:text-4xl font-display font-bold text-slate-900 tracking-tight">{item.title}</h2>
+                  </div>
+                  <DeepDiveView />
+                </motion.div>
               )}
-
-              {item.result && (
-                <section className="bg-brand-blue/5 border border-brand-blue/10 p-6 rounded-2xl">
-                  <span className="text-[10px] font-bold text-brand-blue uppercase tracking-widest block mb-2">Key Result</span>
-                  <p className="text-slate-800 font-bold text-xl tracking-tight">{item.result}</p>
-                </section>
-              )}
-
-              {item.tags && (
-                <div className="flex flex-wrap gap-2 pt-4">
-                  {item.tags.map(tag => (
-                    <span key={tag} className="px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-14 pt-8 border-t border-slate-100 flex justify-between items-center gap-4">
-               <p className="text-slate-400 text-xs font-medium uppercase tracking-widest hidden sm:block">Trinexiss Intelligence Hub</p>
-               <div className="flex gap-4 ml-auto">
-                 <button 
-                  onClick={onClose}
-                  className="px-8 py-3 rounded-full border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all text-sm"
-                 >
-                   Close
-                 </button>
-                 {item.isJob && (
-                   <button 
-                    onClick={onApply}
-                    className="btn-gradient !px-10 shadow-xl shadow-brand-purple/20"
-                   >
-                     Apply Now
-                   </button>
-                 )}
-                 {!item.isJob && (
-                   <button 
-                    onClick={onClose}
-                    className="btn-gradient !px-10"
-                   >
-                     Got it
-                   </button>
-                 )}
-               </div>
-            </div>
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>
     </div>
   );
 };
+
+// --- Components ---
+const Logo = ({ className = "w-10 h-10", iconClassName = "w-6 h-6" }: { className?: string, iconClassName?: string }) => (
+  <div className={`${className} bg-slate-950 rounded-xl flex items-center justify-center shadow-lg border border-slate-800 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+    <svg viewBox="0 0 100 100" className={iconClassName} fill="white">
+      <path d="M48 12 L5 88 L32 88 L52 48 Z" />
+      <path d="M54 18 L95 88 L68 88 L48 52 Z" />
+    </svg>
+  </div>
+);
 
 const Navbar = ({ currentPage, setPage }: { currentPage: Page, setPage: (p: Page) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -276,12 +421,10 @@ const Navbar = ({ currentPage, setPage }: { currentPage: Page, setPage: (p: Page
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#F9F7FF]/90 backdrop-blur-lg border-b border-purple-100 py-3' : 'bg-transparent py-5'}`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <div 
-          className="flex items-center gap-2 cursor-pointer group" 
+          className="flex items-center gap-3 cursor-pointer group" 
           onClick={() => setPage('home')}
         >
-          <div className="w-10 h-10 bg-brand-purple rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform">
-            <span className="text-white font-bold text-xl">T</span>
-          </div>
+          <Logo className="w-10 h-10" iconClassName="w-5 h-5" />
           <span className="font-display font-bold text-xl tracking-tight text-slate-900">
             Trinexiss <span className="text-slate-900">Technologies</span>
           </span>
@@ -348,10 +491,8 @@ const Footer = ({ setPage }: { setPage: (p: Page) => void }) => (
   <footer className="bg-slate-50 border-t border-slate-200 pt-20 pb-10">
     <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
       <div className="col-span-1 md:col-span-1">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-brand-purple rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">T</span>
-          </div>
+        <div className="flex items-center gap-3 mb-6 group cursor-pointer" onClick={() => { setPage('home'); window.scrollTo(0,0); }}>
+          <Logo className="w-8 h-8" iconClassName="w-4 h-4" />
           <span className="font-display font-bold text-lg text-slate-900 uppercase">Trinexiss</span>
         </div>
         <p className="text-slate-700 text-sm leading-relaxed mb-6">
@@ -392,7 +533,7 @@ const Footer = ({ setPage }: { setPage: (p: Page) => void }) => (
         <ul className="space-y-4">
           <li className="flex items-start gap-3 text-sm text-slate-500">
             <MapPin size={18} className="text-brand-blue shrink-0" />
-            <span>Hinjewadi Phase 2, Pune, Maharashtra</span>
+            <span>Office No 1044, Gera's Imperium Rise, Hinjewadi Phase 2, Maharashtra 411057</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-slate-500">
             <Mail size={18} className="text-brand-blue shrink-0" />
@@ -737,9 +878,12 @@ const HomePage = ({ setPage, onItemClick }: { setPage: (p: Page) => void, onItem
                   }`}
                 >
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedWho === i ? 'bg-brand-purple/10 text-brand-purple' : 'bg-slate-50 text-slate-400 group-hover:bg-brand-pink/10 group-hover:text-brand-pink'
+                    selectedWho === i ? 'bg-brand-purple/10 text-brand-purple' : 'bg-white text-slate-400 group-hover:bg-brand-pink/10 group-hover:text-brand-pink'
                   }`}>
-                    {React.cloneElement(card.icon as React.ReactElement, { size: 28 })}
+                    {React.isValidElement(card.icon)
+                      ? React.cloneElement(card.icon as React.ReactElement, { size: 28 })
+                      : <span className="text-xl">{card.icon}</span>
+                    }
                   </div>
                   <div className="flex-1">
                     <h4 className={`font-display font-bold text-xl mb-1 transition-colors ${selectedWho === i ? 'text-brand-purple' : 'text-slate-800'}`}>
@@ -787,14 +931,17 @@ const HomePage = ({ setPage, onItemClick }: { setPage: (p: Page) => void, onItem
                 onClick={() => onItemClick(s)}
                 className={`p-10 rounded-[3rem] border shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:shadow-[0_40px_80px_rgba(108,99,255,0.15)] transition-all flex flex-col cursor-pointer group relative overflow-hidden backdrop-blur-sm ${
                   i % 2 === 0 
-                  ? 'bg-pink-50/80 border-pink-100 hover:border-brand-pink' 
+                  ? 'bg-purple-50/80 border-purple-100 hover:border-brand-purple' 
                   : 'bg-purple-50/80 border-purple-100 hover:border-brand-purple'
                 }`}
               >
                 <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -z-10 rounded-full transition-colors ${i % 2 === 0 ? 'bg-brand-pink/10 group-hover:bg-brand-pink/20' : 'bg-brand-purple/10 group-hover:bg-brand-purple/20'}`} />
                 
                 <div className="w-16 h-16 bg-white border border-slate-100 shadow-xl rounded-2xl flex items-center justify-center mb-10 group-hover:bg-slate-900 group-hover:text-white transition-all duration-500">
-                  {React.cloneElement(s.icon as React.ReactElement, { size: 32 })}
+                  {React.isValidElement(s.icon)
+                    ? React.cloneElement(s.icon as React.ReactElement, { size: 32 })
+                    : <span className="text-2xl">{s.icon}</span>
+                  }
                 </div>
                 
                 <h3 className="font-display font-bold text-2xl text-slate-900 mb-4 tracking-tight uppercase">{s.title}</h3>
@@ -977,173 +1124,398 @@ const HomePage = ({ setPage, onItemClick }: { setPage: (p: Page) => void, onItem
 };
 
 const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void }) => {
-  const [selectedSubItem, setSelectedSubItem] = useState<DetailSubItem | null>(null);
+  const [selectedSubItem, setSelectedSubItem] = useState<{ sub: DetailSubItem, parent: DetailItem } | null>(null);
 
   const allServices: DetailItem[] = [
     { 
       title: 'Talent & Staffing Solutions', 
       icon: <Users />, 
-      desc: 'Expert hiring for your complex needs.',
+      desc: 'End-to-end workforce acquisition across domains.',
+      longDesc: 'End-to-end workforce acquisition — from frontline permanent hires to C-suite leadership searches, across IT and non-IT domains.',
       subItems: [
         { 
-          title: 'Permanent Staffing (IT & Non-IT)', 
-          detail: 'Our strategic permanent recruitment model focuses on long-term organizational stability. We utilize proprietary assessment frameworks to ensure technical competency and cultural alignment.', 
-          example: 'Ex: Successfully placed 15+ Senior Java Developers and Data Architects for a leading Pune-based fintech unicorn within active 45-day hiring sprints.'
+          title: 'Permanent Staffing', 
+          detail: 'IT & Non-IT full-time placements aligned to your culture and role requirements.', 
+          example: 'Targeting long-term organizational stability.'
         },
         { 
-          title: 'Contract Staffing / Staff Augmentation', 
-          detail: 'Agile workforce expansion for specific project durations. We provide pre-vetted specialists who integrate seamlessly into your existing Scrum teams and engineering workflows.', 
-          example: 'Ex: Provided 10 specialized React.js contractors to an e-commerce giant to expedite a multi-platform mobile app migration, completing 3 months ahead of schedule.'
+          title: 'Contract Staffing', 
+          detail: 'Staff augmentation for project-based or seasonal needs with flexible engagement.', 
+          example: 'Pre-vetted specialists who integrate seamlessly.'
         },
         { 
-          title: 'Executive Search & Leadership Hiring', 
-          detail: 'High-touch search for C-suite and senior leadership. We map global markets to identify visionaries capable of driving digital transformation and organizational growth.', 
-          example: 'Ex: Orchestrated the recruitment of a Chief Technology Officer (CTO) for a series-B SaaS startup, focusing on scaling engineering culture from 20 to 200 members.'
+          title: 'Executive Search', 
+          detail: 'Confidential leadership hiring — CXO, VP, Director-level roles across industries.', 
+          example: 'Mapping global markets to identify visionaries.'
         },
         { 
-          title: 'Offshore & Dedicated Hiring Support', 
-          detail: 'Global delivery models providing cost-effective specialized talent pools. We manage the entire remote infrastructure, payroll, and compliance for your dedicated offshore teams.', 
-          example: 'Ex: Established a 30-person dedicated support and engineering hub in Pune for a Texas-based logistics firm, reducing their operational costs by 45%.'
+          title: 'Offshore Hiring', 
+          detail: 'Dedicated offshore teams set up on your behalf — cost-effective and scalable.', 
+          example: 'Managing infrastructure, payroll, and compliance.'
         }
       ],
+      example: 'Scenario: A Pune-based fintech startup needs 12 developers in 6 weeks. Solution: Trinexiss sources pre-screened candidates, conducts assessments, and delivers shortlists within 7 days.',
+      process: '1. Requirement Deep-Dive | 2. Talent Sourcing | 3. Screening & Assessment | 4. Placement & Onboarding Support',
+      result: '✔ 48h Shortlist | ✔ 92% Accept Rate | ✔ 500+ Placed',
       color: 'bg-purple-50',
       iconColor: 'text-brand-purple',
-      accent: 'border-purple-100'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'End-to-end workforce acquisition — from frontline permanent hires to C-suite leadership searches, across IT and non-IT domains.',
+        sections: [
+          {
+            title: 'Permanent Staffing',
+            icon: '💼',
+            explanation: 'Ideal for building long-term organizational stability. Covers end-to-end hiring — sourcing, screening, cultural fit assessment, and onboarding support — for roles across engineering, operations, finance, HR, and more.',
+            businessValue: ['IT & Non-IT', 'Culture fit', 'Long-term'],
+            example: 'A fintech startup needs a permanent Senior DevOps Engineer. The staffing firm sources candidates, runs technical rounds, evaluates team-culture alignment, and places the right hire — reducing time-to-fill from 90 to 30 days.'
+          },
+          {
+            title: 'Contract Staffing',
+            icon: '🔄',
+            explanation: 'Flexible staff augmentation for project-based or seasonal workforce needs. Pre-vetted specialists are deployed on short-notice contracts — weeks to months — and integrate seamlessly into your existing teams. Engagement scales up or down based on project milestones, with no long-term overhead.',
+            businessValue: ['Flexible', 'Pre-vetted', 'Scalable'],
+            example: 'An e-commerce company needs 15 customer support agents for the festive season (Oct–Jan). Contract staffing provides trained, ready-to-deploy agents within a week, then winds down post-season with zero severance risk.'
+          },
+          {
+            title: 'Executive Search',
+            icon: '👑',
+            explanation: 'Confidential CXO, VP & Director-level hiring across industries. A discreet, research-driven process to identify visionary leaders — including passive candidates not on the open market. Involves deep market mapping, competitor benchmarking, and rigorous leadership assessment before presenting a shortlist.',
+            businessValue: ['Confidential', 'Global reach', 'C-suite'],
+            example: 'A mid-size manufacturing firm needs a new CFO after a sudden exit. The executive search team confidentially maps 200+ finance leaders across Asia & Europe, shortlists 5, and presents a hire within 8 weeks — without the market knowing there was a vacancy.'
+          },
+          {
+            title: 'Offshore Hiring',
+            icon: '🌍',
+            explanation: 'Dedicated offshore teams — cost-effective, scalable, compliance-managed. The firm sets up and manages an entire offshore workforce on your behalf — handling recruitment, infrastructure, local payroll, tax compliance, and HR operations. You get the output; they handle the complexity.',
+            businessValue: ['Cost-effective', 'Compliance', 'Infra managed'],
+            example: 'A UK SaaS company wants a 20-person software development team in India to cut costs by 60%. The staffing firm recruits the engineers, leases office space, manages payroll in INR, and handles PF/ESI compliance — the client just manages the work.'
+          }
+        ]
+      }
     },
     { 
       title: 'HR & Business Consulting', 
       icon: <Settings />, 
-      desc: 'Optimizing your organizational ecosystem.',
+      desc: 'Optimize your organizational ecosystem and compliance.',
+      longDesc: 'Optimize your organizational ecosystem — from payroll compliance to strategic workforce planning.',
       subItems: [
         { 
           title: 'HR & Payroll Outsourcing', 
-          detail: 'End-to-end management of HR operations including payroll processing, tax compliance, and benefit administration using automated cloud-based ERP systems.', 
-          example: 'Ex: Automated payroll for a 500+ employee manufacturing firm, eliminating manual entry errors and ensuring 100% statutory compliance across 3 states.'
+          detail: 'Full-service payroll, compliance, statutory filings handled end-to-end.', 
+          example: 'Handling PF, ESIC, TDS with 100% accuracy.'
         },
         { 
-          title: 'Talent Acquisition (End-to-End)', 
-          detail: 'Managing the complete candidate journey from branding and sourcing to psychological vetting and onboarding strategies for high-volume recruitment.', 
-          example: 'Ex: Designed a complete RPO (Recruitment Process Outsourcing) framework for a domestic retail chain, hiring 200+ store associates in under 60 days.'
+          title: 'Talent Acquisition Management', 
+          detail: 'Complete TA function — JD creation, sourcing, interviews, offer, onboarding.', 
+          example: 'Designing complete RPO frameworks.'
         },
         { 
-          title: 'Workforce Planning & Optimization', 
-          detail: 'Strategic analysis of organizational headcount and skill gaps. We help align your workforce architecture with your future revenue goals and market expansion plans.', 
-          example: 'Ex: Optimized department hierarchy for a digital agency, increasing cross-functional collaboration and reducing redundant middle-management costs by 15%.'
+          title: 'Workforce Planning', 
+          detail: 'Headcount modelling and skill-gap analysis for growth phases.', 
+          example: 'Aligning architecture with future revenue goals.'
         },
         { 
           title: 'Training & Development', 
-          detail: 'Customized корпоративная learning pathways focusing on emerging tech stacks and leadership soft skills. We translate business objectives into measurable skill outcomes.', 
-          example: 'Ex: Conducted a 6-week intensive GenAI and LLM integration workshop for a traditional IT services company, upskilling 50 lead architects.'
+          detail: 'Custom learning paths, leadership programs, and onboarding bootcamps.', 
+          example: 'Upskilling lead architects in GenAI.'
         }
       ],
-      color: 'bg-pink-50',
+      example: 'Scenario: A 80-person logistics firm wants to outsource HR entirely. Solution: Trinexiss takes over payroll, compliance, lifecycle management, and performance reviews.',
+      process: '1. HR Audit | 2. Solution Design | 3. Execution | 4. Continuous Improvement',
+      result: '✔ 100% Compliance | ✔ 30% Cost Saving | ✔ 50+ Organizations',
+      color: 'bg-purple-50',
       iconColor: 'text-brand-pink',
-      accent: 'border-pink-100'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'End-to-end HR ecosystem management — from statutory compliance and payroll to strategic workforce architecture and learning programs.',
+        sections: [
+          {
+            title: 'HR & Payroll Outsourcing',
+            icon: '💼',
+            explanation: 'Covers the entire monthly payroll cycle — salary computation, tax deductions, reimbursements, statutory remittances, and employee payslip generation — so your internal team focuses on people, not paperwork.',
+            list: ['Payroll processing (CTC breakup, bonus, settlements)', 'PF & ESIC (Challan, ECR filing, claim support)', 'TDS & Form 16 (Monthly computation, 24Q filing)', 'Labour law compliance (PT, LWF, MIS reports)'],
+            businessValue: ['100% compliant', 'PF / ESIC / TDS', 'Zero delays'],
+            example: 'A 200-employee manufacturing firm outsources payroll to Trinexiss. Every month — salary disbursed on time, PF challan filed by 15th, ESIC by 21st, TDS deposited by 7th, and Form 16 issued in April — all without a single penalty notice in 2 years.'
+          },
+          {
+            title: 'Talent Acquisition Management',
+            icon: '🎯',
+            explanation: 'Goes beyond filling vacancies — Trinexiss becomes your embedded TA team. RPO (Recruitment Process Outsourcing) means the entire hiring function — tools, process, metrics, and team — is designed and managed on your behalf.',
+            list: ['JD creation (Competency mapping, grade alignment)', 'Sourcing & screening (Multi-channel, AI-assisted)', 'Interview & selection (Panel coordination, scoring)', 'Offer & onboarding (Negotiation, 30-60-90 day plan)'],
+            businessValue: ['Full RPO', 'TA metrics', 'Quality hires'],
+            example: 'A Series B SaaS startup scaling from 80 to 250 people engages Trinexiss as their RPO partner. Within 6 months — 120 hires across Engineering, Sales & Ops — with a structured ATS, hiring scorecards, and an onboarding bootcamp built from scratch.'
+          },
+          {
+            title: 'Workforce Planning',
+            icon: '📊',
+            explanation: 'Workforce planning is proactive — it answers "how many people, with what skills, in which functions, by when?" — driven by revenue targets and org design principles.',
+            list: ['Current state audit (Spans of control, skill inventory)', 'Revenue-to-headcount modelling (Forecast hiring)', 'Skill-gap analysis (Identify critical missing capabilities)', 'Org architecture design (Pods, reporting lines)'],
+            businessValue: ['Growth-aligned', 'Org design', 'Skill-gap analysis'],
+            example: 'A logistics company targeting ₹500 Cr revenue in 24 months engages Trinexiss for workforce planning. Analysis reveals a gap of 18 supply-chain analysts and 6 data engineers. A phased hiring roadmap is created — saving ₹40L in avoided mis-hires.'
+          },
+          {
+            title: 'Training & Development',
+            icon: '📚',
+            explanation: 'Trinexiss designs role-specific learning journeys — for new joiners, first-time managers, senior leaders, and technical teams — with measurable outcomes, not just completion certificates.',
+            list: ['Onboarding bootcamps (Culture, tools, role clarity)', 'Leadership programs (Decision-making, strategic thinking)', 'GenAI upskilling (LLMs, RAG, prompt engineering)', 'Custom learning paths (Assessments, certifications)'],
+            businessValue: ['GenAI / LLM', 'Leadership', 'Onboarding'],
+            example: 'A mid-size IT services firm wants its 30 lead architects to adopt GenAI. Trinexiss designs an 8-week cohort program on LLMs, RAG, and prompt engineering. Post-program, 22 architects deploy at least one AI-assisted workflow.'
+          },
+          {
+            title: 'Synergy of Pillars',
+            icon: '🤝',
+            explanation: 'Together these services form a complete HR operating system — hire right, pay accurately, plan ahead, and continuously upskill — creating an organization that scales without breaking.',
+            list: ['Payroll & Compliance → TA & RPO', 'Workforce Planning → Training & Development', 'Unified Operating System'],
+            businessValue: ['Future-ready org', 'Scalable architecture', 'Strategic alignment']
+          }
+        ]
+      }
     },
     { 
       title: 'Technology & Digital Solutions', 
       icon: <Globe />, 
-      desc: 'Building your digital core.',
+      desc: 'Build your digital core and architecture.',
+      longDesc: 'Build your digital core — AI agents, SaaS platforms, data dashboards, and growth marketing under one roof.',
       subItems: [
         { 
-          title: 'AI & Automation - Custom Agents', 
-          detail: 'Architecting intelligent autonomous agents using LangChain and specialized LLMs. We build systems that perform reasoning, research, and execute complex business logic.', 
-          example: 'Ex: Developed an AI Customer Support Agent that handles 80% of routine inquiries and automatically schedules technical support tickets in Jira.'
+          title: 'AI & Automation Solutions', 
+          detail: 'Custom AI agents and intelligent workflow automation for business processes.', 
+          example: 'Architecting intelligent autonomous agents.'
         },
         { 
-          title: 'SaaS Development - React/Node', 
-          detail: 'Full-stack application engineering focusing on high-concurrency, security, and responsive UX. We use modern cloud-native architectures for infinite horizontal scaling.', 
-          example: 'Ex: Built a multi-tenant subscription platform for a Real Estate client, supporting 10k+ active users and real-time property tracking updates.'
+          title: 'SaaS Platform Development', 
+          detail: 'React/Node enterprise-grade SaaS products from MVP to scale.', 
+          example: 'Modern cloud-native architectures for infinite scaling.'
         },
         { 
-          title: 'Digital Marketing - SEO/PPC', 
-          detail: 'Data-driven performance marketing and content strategy. We focus on ROI-positive experiments, technical SEO, and conversion rate optimization (CRO).', 
-          example: 'Ex: Scaled a beauty brand\'s organic traffic by 300% in 9 months via localized SEO and targeted Meta ad campaigns reaching 1M+ prospective customers.'
+          title: 'Digital Marketing Excellence', 
+          detail: 'SEO strategy, PPC campaign management, and performance analytics.', 
+          example: 'Scaling organic traffic by 300% in 9 months.'
         },
         { 
           title: 'Dashboarding & Analytics', 
-          detail: 'Transforming siloed data streams into unified executive command centers. Our dashboards provide real-time visibility into sales, churn, and operational health.', 
-          example: 'Ex: Created an integrated Power BI dashboard for a global supply chain firm, unifying data from 12 regional warehouses onto a single live screen.'
+          detail: 'Real-time business intelligence dashboards integrated with your data.', 
+          example: 'Unified executive command centers for operations.'
         }
       ],
+      example: 'Scenario: An FMCG brand needs a 360° digital presence. Solution: Trinexiss builds a portal, sets up SEO strategy, ads, and a live dashboard.',
+      process: '1. Strategy & UX | 2. Development | 3. Launch & Marketing | 4. Analytics & Support',
+      result: '✔ 3x ROI | ✔ 40+ Projects | ✔ 99.5% Uptime',
       color: 'bg-purple-50',
       iconColor: 'text-brand-blue',
-      accent: 'border-blue-100'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'Build your digital core — AI agents, SaaS platforms, data dashboards, and growth marketing under one roof with integrated performance ecosystems.',
+        sections: [
+          {
+            title: 'AI & Automation Solutions',
+            icon: '🤖',
+            explanation: 'We create custom AI agents and intelligent automation systems that streamline business processes and reduce manual effort.',
+            list: ['AI-powered chatbots', 'Automated workflows', 'Intelligent decision-making systems'],
+            businessValue: ['Saves time', 'Reduces errors', 'Improves efficiency'],
+            example: 'A company receives 100+ customer queries daily → We build an AI chatbot that handles queries automatically and reduces support workload.'
+          },
+          {
+            title: 'SaaS Platform Development',
+            icon: '💻',
+            explanation: 'We design and develop enterprise-grade SaaS platforms using modern technologies like React and Node.js.',
+            list: ['MVP development', 'Full-scale product development', 'Cloud deployment and scaling'],
+            businessValue: ['Scalable', 'Secure', 'Enhanced UX'],
+            example: 'A startup wants to launch a product → We build a SaaS application where users can log in, manage data, and scale as the business grows.'
+          },
+          {
+            title: 'Digital Marketing Excellence',
+            icon: '📢',
+            explanation: 'We provide performance-driven digital marketing solutions to help businesses grow their online presence and generate leads.',
+            list: ['SEO strategy', 'PPC campaign management', 'Performance tracking'],
+            businessValue: ['High visibility', 'Lead gen', 'Brand presence'],
+            example: 'A business wants more website traffic → We optimize SEO and run ad campaigns to increase visibility, results in 300% growth in 9 months.'
+          },
+          {
+            title: 'Dashboarding & Analytics',
+            icon: '📊',
+            explanation: 'We build real-time business intelligence dashboards that help companies make better decisions using data.',
+            list: ['Data integration', 'Real-time reporting', 'Unified executive dashboards'],
+            businessValue: ['Better decisions', 'Real-time insights', 'Unified monitoring'],
+            example: 'A company wants to track sales, revenue, and performance → We create a dashboard using tools like Looker Studio or Power BI.'
+          }
+        ]
+      }
     },
     { 
       title: 'AI & Automation', 
       icon: <Bot />, 
-      desc: 'Custom bots and intelligent workflows.',
+      desc: 'Smart bots and intelligent automated workflows.',
+      longDesc: 'Custom bots, intelligent workflows, and no-code solutions that eliminate repetitive work and accelerate decisions.',
       subItems: [
         { 
           title: 'Trinexiss Bot Creation', 
-          detail: 'Proprietary bot development framework specializing in internal data indexing and automated knowledge retrieval for large enterprises.', 
-          example: 'Ex: Built "Trinexiss Knowledge Bot" for a law firm, allowing partners to search 50,000+ legal documents via natural language queries in seconds.'
+          detail: 'AI chatbots for HR, sales, and support trained on your data.', 
+          example: 'Bots for indexed internal data retrieval.'
         },
         { 
           title: 'Zapier & n8n Workflows', 
-          detail: 'Complex multi-step automation logic that connects your disparate software tools. We eliminate data silos and manual repetitive data entry tasks.', 
-          example: 'Ex: Automated the lead-to-invoice pipeline for a consultancy, connecting HubSpot, Slack, and QuickBooks, saving their sales team 10 hours per week.'
+          detail: 'Connect 500+ apps and automate multi-step business processes.', 
+          example: 'Eliminating manual repetitive data entry tasks.'
         },
         { 
           title: 'No-code Software Solutions', 
-          detail: 'Rapid application development using Bubble and Glide. We build production-ready internal tools and MVP prototypes at 4x the speed of traditional code.', 
-          example: 'Ex: Launched a fully functional marketplace MVP for a startup in 14 days, enabling them to secure initial seed funding with a live product.'
+          detail: 'Rapid internal tools and portals using platforms like Bubble/Retool.', 
+          example: 'MVP prototypes delivered at 4x speed.'
         }
       ],
-      color: 'bg-pink-50',
+      example: 'Scenario: HR team spends 3 hours daily answering leave queries. Solution: Trinexiss builds a WhatsApp HR bot saving 60+ hours per month.',
+      process: '1. Trigger Analysis | 2. Parse & Score | 3. Notify & Sync | 4. Auto-Response',
+      result: '✔ 70% Manual Work Eliminated | ✔ 2 Weeks Deployment',
+      color: 'bg-purple-50',
       iconColor: 'text-brand-purple',
-      accent: 'border-purple-200'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'AI & Automation focuses on eliminating repetitive work and accelerating decisions using custom bots, intelligent workflows, and no-code solutions.',
+        sections: [
+          {
+            title: 'Trinexiss Bot Creation',
+            icon: '🤖',
+            explanation: 'We build intelligent AI chatbots for HR, Sales, and Support, trained specifically on your company data to provide accurate, real-time responses 24/7.',
+            list: ['HR Bots: Leave & policy queries', 'Sales Bots: Lead qualification', 'Support Bots: Client resolution'],
+            businessValue: ['Time saving', '24/7 availability', 'Data-driven'],
+            example: 'An HR team spends 3 hours daily answering routine questions. Trinexiss builds a WhatsApp HR bot that handles 80% of queries, saving 60+ hours per month.'
+          },
+          {
+            title: 'Zapier & n8n Workflows',
+            icon: '⚡',
+            explanation: 'Connect 5000+ apps into seamless workflows. Zapier is ideal for simple, rapid triggers, while n8n provides advanced, self-hosted, and complex logic for massive data scaling.',
+            list: ['Zapier: Rapid, user-friendly triggers', 'n8n: Complex branching & self-hosting', 'Zero manual data entry'],
+            businessValue: ['Process automation', 'Zero entry errors', 'Scalable logic'],
+            example: 'A lead fills a form → Data goes to CRM → Email is sent via Mailchimp → Sales team is notified on Slack. Total human effort: zero.'
+          },
+          {
+            title: 'No-code Software Solutions',
+            icon: '🚀',
+            explanation: 'Rapid internal tools and portals built using Bubble or Retool. This allows for launching MVPs and custom software at 4x the speed of traditional development.',
+            list: ['Admin Dashboards', 'Employee Portals', 'Rapid MVP prototyping'],
+            businessValue: ['4x faster launch', 'Cost-effective', 'Agile iteration'],
+            example: 'A fully functional internal inventory portal was launched in 14 days, compared to the typical 2-month timeline for custom code.'
+          }
+        ]
+      }
     },
     { 
       title: 'SaaS Development', 
       icon: <Code />, 
-      desc: 'Enterprise-grade scalable systems.',
+      desc: 'Enterprise-grade scalable software systems.',
+      longDesc: 'Enterprise-grade, scalable software systems — from financial platforms to patient management portals.',
       subItems: [
         { 
-          title: 'FinTrack Financial Systems', 
-          detail: 'Custom fintech platforms focusing on automated bookkeeping, investment tracking, and predictive revenue forecasting for SMEs.', 
-          example: 'Ex: Modular SaaS platform for a group of clinics, managing billing for 50+ doctors and generating real-time profitability reports.'
+          title: 'FinTrack Systems', 
+          detail: 'Financial management — invoicing, expense tracking, P&L dashboards.', 
+          example: 'Predictive revenue forecasting for SMEs.'
         },
         { 
-          title: 'HealthSync Patient Portals', 
-          detail: 'Patient-first digital health platforms featuring appointment scheduling, secure health record storage, and telemedicine integrations.', 
-          example: 'Ex: Implemented a portal for a multi-specialty hospital, reducing wait times by 40% and enabling remote consultations for 2000+ monthly patients.'
+          title: 'HealthSync Portals', 
+          detail: 'Patient management — appointments, records, billing, doctor dashboards.', 
+          example: 'Modernizing patient management for hospital groups.'
         },
         { 
           title: 'Enterprise Dashboards', 
-          detail: 'Comprehensive BI tools designed for executive monitoring and departmental KPI tracking across global organizations.', 
-          example: 'Ex: Built a unified dashboard for a CEO of an ESG-focused logistics firm, tracking carbon footprint and fuel efficiency across their fleet.'
+          detail: 'BI tools for executive monitoring and departmental KPI tracking.', 
+          example: 'Unified sales, operations, and HR tracking.'
         }
       ],
+      example: 'Scenario: A hospital group needs to modernize patient management. Solution: HealthSync deployment for booking, records, and auto-billing.',
+      process: '1. Discovery Sprint | 2. MVP (4-6 weeks) | 3. Iterative Releases | 4. Support',
+      result: '✔ 4-6w MVP | ✔ React/Node Stack | ✔ AWS Infrastructure',
       color: 'bg-purple-50',
       iconColor: 'text-brand-pink',
-      accent: 'border-pink-200'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'Enterprise-grade, scalable software systems — from financial platforms to patient management portals, built for high performance and infinite growth.',
+        sections: [
+          {
+            title: 'FinTrack Systems',
+            icon: '💸',
+            explanation: 'Modular financial management platforms designed for SMEs and growing enterprises, focusing on automation and predictive insights.',
+            list: ['Automated invoicing', 'Expense monitors', 'P&L visualization', 'Revenue forecasting'],
+            businessValue: ['Real-time P&L', 'Financial automation', 'Scalable architecture'],
+            example: 'A modular SaaS for a group of clinics, managing billing for 50+ doctors and generating real-time profitability reports across all branches.'
+          },
+          {
+            title: 'HealthSync Portals',
+            icon: '🏥',
+            explanation: 'Patient-centric digital health platforms that unify appointment scheduling, health records, and billing into one secure environment.',
+            list: ['Appointment management', 'Secure health records', 'Digital billing', 'Doctor dashboards'],
+            businessValue: ['Organized data', 'Reduced wait times', 'Enhanced coordination'],
+            example: 'A hospital portal reduced patient wait times by 40% and enabled remote consultations for 2000+ monthly patients using HealthSync.'
+          },
+          {
+            title: 'Enterprise Dashboards',
+            icon: '📊',
+            explanation: 'Unified Business Intelligence (BI) tools that integrate data from all departments to provide executives with a single source of truth.',
+            list: ['Executive command centers', 'KPI tracking visualizers', 'Cross-departmental data sync'],
+            businessValue: ['One source of truth', 'Better decision-making', 'Unified visibility'],
+            example: 'A logistics firm tracks carbon footprint, fuel efficiency, and fleet performance in real-time via a unified enterprise dashboard.'
+          }
+        ]
+      }
     },
     { 
       title: 'HR and Recruitment', 
       icon: <UserPlus />, 
       desc: 'Strategic talent acquisition protocols.',
+      longDesc: 'Strategic talent acquisition — from niche technical assessments to confidential executive searches.',
       subItems: [
         { 
           title: 'Executive Search', 
-          detail: 'Strategic identification of potential leadership talent. We conduct deep-dive market research and background vetting to ensure perfect executive alignment.', 
-          example: 'Ex: Successfully sourced and hired a Head of Engineering for an AI startup, focusing on candidates with deep experience in distributed systems.'
+          detail: 'Discreet, research-led search for CXO and Director roles.', 
+          example: 'Perfect executive alignment via deep-dive vetting.'
         },
         { 
           title: 'Permanent Recruitment', 
-          detail: 'Building high-performance core teams through rigorous screening and modern recruitment marketing strategies across all technical levels.', 
-          example: 'Ex: Expanded a software development center\'s team by hiring 40 specialized Cloud Architects and DevOps engineers in under a quarter.'
+          detail: 'Full-cycle hiring for all functions and seniority levels.', 
+          example: 'Rigorous screening and recruitment marketing.'
         },
         { 
           title: 'Technical Assessment', 
-          detail: 'Comprehensive evaluation of developer skills using live coding challenges and real-world system design interviews conducted by our subject matter experts.', 
-          example: 'Ex: Vetted 500+ candidates for a German automotive client, selecting the top 2% through our specialized Trinexiss Technical Mastery labs.'
+          detail: 'Skill-based screening — coding tests and domain quizzes.', 
+          example: 'Vetting through Trinexiss Technical Mastery labs.'
         }
       ],
-      color: 'bg-pink-50',
+      example: 'Scenario: A SaaS company needs a VP Engineering discreetly. Solution: Confidential search mapping landscape andApproaching passive candidates.',
+      process: '1. Role Profiling | 2. Market Mapping | 3. Multi-Stage Assessment | 4. Offer & Close',
+      result: '✔ 21 Days Placement | ✔ 95% Retention | ✔ 100% Confident',
+      color: 'bg-purple-50',
       iconColor: 'text-brand-purple',
-      accent: 'border-purple-100'
+      accent: 'border-purple-100',
+      deepDive: {
+        overview: 'HR and Recruitment — strategic talent acquisition protocols explained. Strategic talent acquisition — from niche technical assessments to confidential executive searches.',
+        sections: [
+          {
+            title: 'Executive Search',
+            icon: '👑',
+            explanation: 'A specialized hiring process for top-level roles like CXO, Directors, and senior leadership that requires strategic thinking and absolute confidentiality.',
+            list: ['Research-based candidate search', 'Confidential market mapping', 'Deep background checks', 'Competitor talent analysis'],
+            example: 'A startup needs a Chief Technology Officer (CTO). We identify experienced leaders from top firms and help hire the best visionary.',
+            businessValue: ['Strong leadership team', 'Better strategic decisions', 'Risk-free executive placement']
+          },
+          {
+            title: 'Permanent Recruitment',
+            icon: '🤝',
+            explanation: 'Focuses on building long-term, stable teams by hiring high-quality permanent employees aligned with your culture and goals.',
+            list: ['Multi-platform candidate sourcing', 'Rigorous resume screening', 'Interview coordination', 'Recruitment marketing strategy'],
+            example: 'Expanding a software development center by hiring 40 specialized Cloud Architects and DevOps engineers in under a quarter.',
+            businessValue: ['Long-term team stability', 'Cultural fit assurance', 'Consistent organizational growth']
+          },
+          {
+            title: 'Technical Assessment',
+            icon: '🧪',
+            explanation: 'Ensures candidates are technically strong and job-ready through structured testing in our Trinexiss Technical Mastery labs.',
+            list: ['Live coding challenges', 'Domain-specific quizzes', 'Practical problem solving', 'Hands-on skill evaluation'],
+            example: 'Vetted 500+ candidates for a German automotive client, selecting the top 2% through our specialized technical mastery labs.',
+            businessValue: ['Only qualified hires move forward', 'Reduced hiring mistakes', 'Saved time for engineering teams']
+          }
+        ]
+      }
     }
   ];
 
@@ -1215,7 +1587,7 @@ const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
                         onClick={(e) => {
                           if (isObject) {
                             e.stopPropagation();
-                            setSelectedSubItem(item as DetailSubItem);
+                            setSelectedSubItem({ sub: item as DetailSubItem, parent: s });
                           }
                         }}
                         className={`flex items-start gap-3 text-xs font-medium transition-all ${isObject ? 'cursor-pointer hover:text-brand-purple hover:translate-x-1' : ''} text-slate-400`}
@@ -1261,11 +1633,11 @@ const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
                     <Rocket size={32} />
                   </div>
                   <h3 className="text-3xl lg:text-4xl font-display font-bold text-slate-900 mb-4 tracking-tighter uppercase leading-none">
-                    {selectedSubItem.title}
+                    {selectedSubItem.sub.title}
                   </h3>
                   <div className="w-20 h-1.5 bg-brand-pink rounded-full mb-6" />
                   <p className="text-slate-600 text-lg leading-relaxed font-medium">
-                    {selectedSubItem.detail}
+                    {selectedSubItem.sub.detail}
                   </p>
                 </div>
 
@@ -1278,17 +1650,29 @@ const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
                     <div className="relative z-10">
                       <span className="text-brand-purple font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">CASE EXAMPLE</span>
                       <p className="text-slate-900 font-display font-bold text-xl leading-snug">
-                        {selectedSubItem.example}
+                        {selectedSubItem.sub.example}
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedSubItem(null)}
-                    className="mt-10 w-full py-6 bg-slate-900 text-white rounded-full font-bold uppercase tracking-widest text-sm hover:bg-brand-purple transition-all shadow-2xl shadow-slate-900/20 flex items-center justify-center gap-3 active:scale-95"
-                  >
-                    CLOSE DETAILS <X size={18} />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4 mt-10">
+                    <button
+                      onClick={() => setSelectedSubItem(null)}
+                      className="flex-1 py-4 bg-slate-100 text-slate-600 border border-slate-200 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        const parent = selectedSubItem.parent;
+                        setSelectedSubItem(null);
+                        if (parent) onItemClick(parent);
+                      }}
+                      className="btn-gradient flex-[2] py-4 rounded-full font-bold uppercase tracking-widest text-xs shadow-xl shadow-brand-purple/20 flex items-center justify-center gap-2"
+                    >
+                      Explore More
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -1307,9 +1691,12 @@ const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
                   key={i} 
                   whileHover={{ y: -15, scale: 1.05 }}
                   onClick={() => setSelectedSubItem({
-                    title: sol.title,
-                    detail: sol.detail,
-                    example: sol.example
+                    sub: {
+                      title: sol.title,
+                      detail: sol.detail,
+                      example: sol.example
+                    },
+                    parent: { title: sol.title, icon: sol.icon, desc: sol.desc } as DetailItem
                   })}
                   className="p-10 bg-slate-50 border border-slate-100 rounded-[3rem] transition-all hover:bg-white hover:shadow-2xl text-center group cursor-pointer"
                 >
@@ -1382,8 +1769,8 @@ const ServicesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
               <div className="text-4xl font-display font-bold text-brand-purple mb-1 group-hover:scale-110 transition-transform">10+</div>
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Years Exp.</div>
             </div>
-            <div className="p-8 lg:p-12 bg-pink-50 border border-pink-100 rounded-[2.5rem] text-center min-w-[200px] shadow-sm hover:shadow-xl transition-all group">
-              <div className="text-4xl font-display font-bold text-brand-pink mb-1 group-hover:scale-110 transition-transform">50+</div>
+            <div className="p-8 lg:p-12 bg-purple-50 border border-purple-100 rounded-[2.5rem] text-center min-w-[200px] shadow-sm hover:shadow-xl transition-all group">
+              <div className="text-4xl font-display font-bold text-brand-purple mb-1 group-hover:scale-110 transition-transform">50+</div>
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Specialists</div>
             </div>
           </div>
@@ -1670,19 +2057,29 @@ const AboutPage = ({ setPage }: { setPage: (p: Page) => void }) => {
   );
 };
 
-const CareersPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void }) => {
+const CareersPage = () => {
   const [expandedPerk, setExpandedPerk] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const jobs: DetailItem[] = [
-    { isJob: true, title: 'Senior AI Engineer', desc: 'Design and deploy large-scale AI agents for enterprise.', tags: ['Python', 'LLMs', 'MLOps'], result: 'Lead the Pune Neural Dev team.', longDesc: 'We are looking for an expert in Large Language Models and AI agent architectures. You will lead the development of our core automation engine, building scalable systems that power Fortune 500 workflows.' },
-    { isJob: true, title: 'Full Stack Developer', desc: 'Build scalable web platforms and dashboards.', tags: ['React', 'Node.js', 'PostgreSQL'], result: 'Scale our SaaS products globally.', longDesc: 'Join our product team to build high-performance web applications. You will be responsible for the full lifecycle of feature development, from frontend UI to complex backend logic.' },
-    { isJob: true, title: 'NLP Research Scientist', desc: 'Advance our NLP capabilities and intelligent pipelines.', tags: ['NLP', 'Transformers', 'Python'], result: 'Fine-tune 10+ models monthly.', longDesc: 'Focused on the cutting edge of language understanding. You will optimize and fine-tune open-source and proprietary models for domain-specific automation tasks.' },
-    { isJob: true, title: 'UI/UX Designer', desc: 'Craft beautiful, intuitive interfaces for our AI products.', tags: ['Figma', 'Prototyping', 'Design Systems'], result: 'Redefine the "AI Dash" experience.', longDesc: 'We believe good design is the secret to AI adoption. You will create the user experiences that make complex AI interactions feel simple and human.' },
-    { isJob: true, title: 'Enterprise Sales Manager', desc: 'Drive partnerships and close high-impact deals.', tags: ['B2B Sales', 'CRM', 'Negotiation'], result: 'Growth across India & GCC regions.', longDesc: 'The face of Trinexiss for our global partners. You will identify business challenges and present our AI solutions as the ultimate growth engine.' },
-    { isJob: true, title: 'AI Automation Consultant', desc: 'Work with clients to analyse and deliver automation.', tags: ['Consulting', 'Process Design', 'Client Mgmt'], result: 'Strategic impact on client ROI.', longDesc: 'Bridging the gap between technology and business. You will audit client workflows and design the automation roadmap that delivers immediate value.' },
-  ];
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
+    script.async = true;
+    script.onload = () => {
+      // @ts-ignore
+      if (window.jotformEmbedHandler) {
+        try {
+          // @ts-ignore
+          window.jotformEmbedHandler("iframe[id='JotFormIFrame-261302156931046']", "https://form.jotform.com/");
+        } catch (err) {
+          console.error('Error initializing JotForm handler:', err);
+        }
+      }
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const benefits = [
     { icon: '💰', title: 'Competitive Pay', desc: 'Market-leading salary + performance bonuses based on impact.', detail: 'We offer quarterly performance bonuses and annual salary reviews tracking with top 5% of local market rates.' },
@@ -1692,45 +2089,6 @@ const CareersPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void 
     { icon: '📈', title: 'Stock Options', desc: 'ESOPs for all full-time employees to participate in our growth.', detail: 'Every engineering hire receives stock options vesting over 4 years with a 1-year cliff.' },
     { icon: '🎉', title: 'Paid Leave', desc: '30 days annual PTO plus all gazetted public holidays.', detail: 'Unlimited sick leave and "recharge days" after major project completions.' }
   ];
-
-  const handleDriveUpload = () => {
-    // Simulated Google Drive access
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        alert(`Connecting to Drive... File selected: ${file.name}`);
-      }
-    };
-    input.click();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 2000);
-  };
-
-  if (isSubmitted) {
-    return (
-      <div className="pt-48 pb-64 text-center">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <div className="w-32 h-32 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-10">
-            <CheckCircle2 size={64} />
-          </div>
-          <h1 className="text-5xl font-display font-bold text-slate-900 mb-6 uppercase tracking-tighter">Application Received</h1>
-          <p className="text-slate-500 text-xl max-w-xl mx-auto">Thank you for joining the mission. Our team will review your profile and reach out within 48 hours.</p>
-          <button onClick={() => setIsSubmitted(false)} className="mt-12 text-brand-purple font-bold uppercase tracking-widest text-sm border-b-2 border-brand-purple pb-1">Return to listings</button>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="pt-32 pb-24 bg-transparent">
@@ -1743,39 +2101,6 @@ const CareersPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void 
              <h1 className="text-6xl lg:text-8xl font-display font-bold text-white mb-6 tracking-tighter uppercase leading-none">BUILD THE <span className="text-brand-purple">FUTURE</span></h1>
              <p className="text-white/60 text-xl lg:text-2xl max-w-2xl mx-auto font-normal leading-relaxed">Join Pune's premier women-led neural expansion hub and scale global AI systems.</p>
            </div>
-        </div>
-
-        {/* Job List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
-          {jobs.map((job, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ y: -10, scale: 1.02 }}
-              onClick={() => onItemClick(job)}
-              className="p-10 rounded-[3rem] bg-pink-50 border border-pink-100 hover:border-brand-pink hover:bg-white cursor-pointer transition-all relative group overflow-hidden shadow-sm"
-            >
-               <div className="absolute top-0 left-0 w-full h-1.5 bg-brand-pink opacity-0 group-hover:opacity-100 transition-opacity" />
-               <div className="flex items-center gap-3 mb-10">
-                 <span className="px-4 py-1.5 bg-brand-pink/10 text-brand-pink text-[9px] font-bold uppercase tracking-widest rounded-full">{job.tags?.[0]}</span>
-                 <span className="px-4 py-1.5 bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest rounded-full">New Role</span>
-               </div>
-               <h2 className="text-2xl font-display font-bold text-slate-900 mb-3 uppercase tracking-tight">{job.title}</h2>
-               <p className="text-slate-500 text-sm mb-10 leading-relaxed">{job.desc}</p>
-               
-               <div className="flex flex-wrap gap-2 mb-12">
-                 {job.tags?.slice(1).map(tag => (
-                   <span key={tag} className="text-[10px] font-bold py-1.5 px-3 bg-white border border-pink-100 rounded-xl text-brand-pink uppercase tracking-widest">{tag}</span>
-                 ))}
-               </div>
-
-               <div className="flex justify-between items-center pt-8 border-t border-pink-100">
-                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remote / Pune</div>
-                 <button className="text-brand-pink font-bold text-xs uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all">
-                   Explore <ArrowRight size={14} />
-                 </button>
-               </div>
-            </motion.div>
-          ))}
         </div>
 
         {/* Benefits */}
@@ -1828,63 +2153,23 @@ const CareersPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void 
            </div>
         </div>
 
-        {/* Form */}
-        <div id="apply-form" className="max-w-4xl mx-auto">
-           <div className="text-center mb-16">
-             <h2 className="text-5xl lg:text-6xl font-display font-bold text-slate-900 tracking-tighter uppercase mb-6 leading-none">JOIN THE <br /><span className="text-brand-purple">Expansion</span></h2>
-             <p className="text-slate-500 mt-4 text-xl font-normal">Your application will be analyzed by our recruitment board within 48 hours.</p>
-           </div>
-           
-           <div className="bg-blue-50/50 rounded-[4rem] p-12 lg:p-24 relative overflow-hidden border border-blue-100 shadow-xl">
-             <div className="absolute top-0 flex w-full">
-               <div className="h-2 w-full bg-brand-purple" />
-               <div className="h-2 w-full bg-brand-pink" />
-             </div>
-
-             <form className="space-y-10" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                   <div className="flex flex-col gap-3">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">First Name</label>
-                     <input type="text" required className="bg-white border-2 border-white rounded-3xl px-8 py-5 focus:border-brand-purple focus:ring-0 outline-none transition-all font-display text-slate-900 shadow-sm" placeholder="Priya" />
-                   </div>
-                   <div className="flex flex-col gap-3">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Last Name</label>
-                     <input type="text" required className="bg-white border-2 border-white rounded-3xl px-8 py-5 focus:border-brand-purple focus:ring-0 outline-none transition-all font-display text-slate-900 shadow-sm" placeholder="Sharma" />
-                   </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Professional Email</label>
-                   <input type="email" required className="bg-white border-2 border-white rounded-3xl px-8 py-5 focus:border-brand-purple focus:ring-0 outline-none transition-all font-display text-slate-900 shadow-sm" placeholder="priya@example.com" />
-                </div>
-                <div className="flex flex-col gap-3">
-                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Selected Role</label>
-                   <select className="bg-white border-2 border-white rounded-3xl px-8 py-5 focus:border-brand-purple focus:ring-0 outline-none transition-all appearance-none cursor-pointer font-display text-slate-900 shadow-sm">
-                      <option>Senior AI Engineer</option>
-                      <option>Full Stack Developer</option>
-                      <option>NLP Research Scientist</option>
-                      <option>UI/UX Designer</option>
-                   </select>
-                </div>
-                <div className="flex flex-col gap-3">
-                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Resume / CV (PDF Only)</label>
-                   <div 
-                    onClick={handleDriveUpload}
-                    className="border-4 border-dashed border-white bg-white/50 p-16 rounded-[2.5rem] text-center hover:border-brand-purple hover:bg-white transition-all cursor-pointer group shadow-inner"
-                   >
-                      <div className="text-5xl mb-6 grayscale group-hover:grayscale-0 transition-all">📂</div>
-                      <p className="text-slate-500 font-bold text-lg mb-2">Connect to Google Drive</p>
-                      <p className="text-slate-400 text-sm">Click to open Drive or browse local files. <br /><span className="text-brand-purple">Max file size 10MB</span></p>
-                   </div>
-                </div>
-                <button 
-                  disabled={isSubmitting}
-                  type="submit" 
-                  className={`btn-gradient w-full py-6 text-xl shadow-2xl shadow-brand-purple/30 uppercase tracking-tighter flex items-center justify-center gap-4 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {isSubmitting ? <>Processing... <AnimatePresence><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><Database size={24} /></motion.div></AnimatePresence></> : <>Submit Application <ArrowUpRight size={24} /></>}
-                </button>
-             </form>
-           </div>
+        {/* JotForm Section */}
+        <div className="mt-32 max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-display font-bold text-slate-900 tracking-tighter uppercase mb-6 leading-none">Job <span className="text-brand-purple">Application Portal</span></h2>
+            <p className="text-slate-500 mt-4 text-lg font-normal">Fill out our standard application form below to join the expansion.</p>
+          </div>
+          <div className="bg-white rounded-[3rem] p-2 sm:p-4 border border-slate-100 shadow-xl overflow-hidden min-h-[600px]">
+             <iframe
+                id="JotFormIFrame-261302156931046"
+                title="Job Application Form"
+                onLoad={() => window.scrollTo(0,0)}
+                allow="geolocation; microphone; camera; fullscreen; payment"
+                src="https://form.jotform.com/261302156931046"
+                style={{ width: '100%', minWidth: '100%', height: '539px', border: 'none' }}
+                scrolling="no"
+              />
+          </div>
         </div>
       </div>
     </div>
@@ -1900,11 +2185,34 @@ const PortfolioPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => voi
       desc: '100% lead tracking and faster response time.',
       problem: 'Leads from website forms were not properly tracked, causing loss of potential clients.',
       solution: 'We implemented an automated lead capture system using Zapier to store and manage leads in real-time.',
-      process: 'Form Submission → Data stored in Google Sheets → Auto email notification',
+      process: 'Form Submission | Data stored in Google Sheets | Auto email notification',
       result: '✔ 100% lead tracking\n✔ Faster response time\n✔ Increased conversion rate',
       image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&q=80&w=1200',
       modalBg: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Many businesses collect leads through website forms, but without a proper system, these leads often get missed or lost. No centralized storage, no instant notifications, and manual tracking often leads to human error. We implemented an automated lead management system using Zapier to capture, store, and alert the team instantly.',
+        sections: [
+          {
+            title: 'Implementation Workflow',
+            icon: '⚙️',
+            explanation: 'A step-by-step automated journey ensuring every lead is handled precisely and immediately.',
+            list: [
+              'Form Submission: Data captured instantly from website.',
+              'Secure Storage: Zapier sends data to Google Sheets automatically.',
+              'Team Notification: Instant email alerts with full lead details.'
+            ],
+            businessValue: [
+              'No lead loss',
+              'Real-time tracking',
+              'Faster response',
+              'Organized data',
+              'Zero manual work'
+            ],
+            example: 'A user fills a contact form -> zapier adds it as a row in Google Sheets -> Team gets an email alert instantly. Result: Win!'
+          }
+        ]
+      }
     },
     { 
       title: 'Customer Support Automation System', 
@@ -1913,75 +2221,183 @@ const PortfolioPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => voi
       desc: '70% faster response time and improved satisfaction.',
       problem: 'Customer queries were handled manually, leading to delays and poor experience.',
       solution: 'We built an AI-powered support system integrated with n8n to automate responses and ticket creation.',
-      process: 'Customer Query → AI Response → Ticket Generated → Assigned to team',
+      process: 'Customer Query | AI Response | Ticket Generated | Assigned to team',
       result: '✔ 70% faster response time\n✔ Improved customer satisfaction\n✔ Reduced manual workload',
       image: 'https://images.unsplash.com/photo-1534536281715-e28d76689b4d?auto=format&fit=crop&q=80&w=1200',
-      modalBg: 'bg-pink-50',
-      accent: 'border-pink-200'
+      modalBg: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Customer queries were handled manually, leading to delays and poor experience. We built an AI-powered support system integrated with n8n to automate responses and ticket creation.',
+        sections: [
+          {
+            title: 'Implementation Workflow',
+            icon: '🤖',
+            explanation: 'A streamlined pipeline from user inquiry to resolved ticket, powered by AI and n8n.',
+            list: [
+              'Intelligent Query Parsing',
+              'Automated AI Response Generation',
+              'Dynamic Ticket Creation',
+              'Smart Human Escalation'
+            ],
+            example: 'Customer Query → AI Response → Ticket Generated → Assigned to team'
+          }
+        ]
+      }
     },
     { 
       title: 'Marketing Analytics Dashboard', 
       industry: 'Advertising Agency',
       tags: ['Looker Studio', 'Google Analytics'], 
       desc: 'Clear performance insights and increased ROI.',
-      problem: 'Client could not track performance of ads across platforms.',
-      solution: 'We created an interactive dashboard using Looker Studio to visualize campaign data.',
-      process: 'Data Collection → Dashboard Creation → Real-time updates',
+      problem: 'Client could not track performance of ads across platforms (Google, Facebook, etc.), leading to fragmented data and delayed reporting.',
+      solution: 'We created an interactive dashboard using Looker Studio to centralize and visualize all marketing data automatically.',
+      process: 'Data Collection | Dashboard Creation | Real-time updates',
       result: '✔ Clear performance insights\n✔ Better decision making\n✔ Increased ROI',
       image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200',
       modalBg: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'The client faced major issues tracking campaign data across multiple platforms. We built an interactive dashboard using Looker Studio to centralize, visualize, and update all marketing metrics in real-time.',
+        sections: [
+          {
+            title: 'Implementation Workflow',
+            icon: '📊',
+            explanation: 'Transforming scattered data points into actionable visual intelligence.',
+            list: [
+              'Multi-Platform Data Collection',
+              'Custom Metric Dashboarding',
+              'Live Data Refresh Sync'
+            ],
+            businessValue: [
+              'All data in one place',
+              'Real-time tracking',
+              'Easy comparison',
+              'Better ROI analysis',
+              'Faster smart decisions'
+            ],
+            example: 'Combine Google Ads, Meta Ads and GA4 into one screen showing CPC, Clicks, and Conversions for all channels at once.'
+          }
+        ]
+      }
     },
     { 
       title: 'Business Process Automation', 
       industry: 'Service-Based Company',
       tags: ['n8n', 'APIs'], 
       desc: '80% time saved and reduced error rates.',
-      problem: 'Manual data entry and repetitive tasks were time-consuming and error-prone.',
-      solution: 'We automated workflows using n8n to handle operations efficiently.',
-      process: 'Task Trigger → Automation Workflow → Data Processing → Notification',
-      subItems: [
-        { title: 'Trigger Identification', detail: 'Detection of manual tasks and data entry points.', example: 'Auto-detecting new portal entries.' },
-        { title: 'Workflow Modeling', detail: 'Designing paths using n8n for data flow.', example: 'Logic-based branching routes.' },
-        { title: 'API Integration', detail: 'Connecting existing software tools via robust APIs.', example: 'Syncing CRM with custom ERP.' },
-        { title: 'Reporting & Logs', detail: 'Automated logging of task completion and metrics.', example: 'Weekly efficiency report generation.' }
-      ],
+      problem: 'Manual data entry and repetitive tasks were time-consuming and error-prone, slowing down business growth.',
+      solution: 'We implemented intelligent workflow automation using n8n to handle operations efficiently and connect tools seamlessly.',
+      process: 'Task Trigger | Automation Workflow | Data Processing | Notification',
       result: '✔ 80% time saved\n✔ Reduced errors\n✔ Improved productivity',
       image: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?auto=format&fit=crop&q=80&w=1200',
-      modalBg: 'bg-pink-50',
-      accent: 'border-pink-200'
+      modalBg: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Many business operations were handled manually, creating repetitive tasks and human errors. We implemented intelligent workflow automation using n8n to handle these tasks automatically and accurately.',
+        sections: [
+          {
+            title: 'Core Implementation Components',
+            icon: '⚡',
+            explanation: 'The architectural pillars of our custom-built automation ecosystem.',
+            list: [
+              'Trigger Identification: Auto-detecting new portal entries.',
+              'Workflow Modeling: Logic-based branching inside n8n.',
+              'API Integration: Syncing CRM and ERP systems.',
+              'Reporting & Logs: Automated transparency and tracking.'
+            ],
+            businessValue: [
+              'Reduced workload',
+              'Minimized errors',
+              'Faster execution',
+              'Scalable processes'
+            ]
+          },
+          {
+            title: 'Implementation Workflow',
+            icon: '⚙️',
+            explanation: 'A step-by-step breakdown of how the automated system processes information.',
+            list: [
+              'Task Trigger: New entry, update, or request occurs.',
+              'Workflow Execution: n8n runs the predefined logic.',
+              'Data Transformation: Validated and sent to target systems.',
+              'Instant Alerts: Team notified via Email/Slack.'
+            ],
+            example: 'New form entry -> n8n executes workflow -> data transformed -> User gets welcome email & Sales gets Slack alert.'
+          }
+        ]
+      }
     },
     { 
       title: 'SaaS CRM Development', 
       industry: 'Startup',
       tags: ['React', 'Node.js', 'APIs'], 
       desc: 'Centralized system for better customer management.',
-      problem: 'Client was managing customer data manually without a centralized system.',
-      solution: 'We developed a scalable SaaS-based CRM application with automation features and integrations.',
-      process: 'User Login → Data Management → Automation → Reporting',
+      problem: 'Client was managing customer data manually via Excel/WhatsApp, leading to scattered data and missed follow-ups.',
+      solution: 'We developed a scalable SaaS-based CRM application with automation features and cloud accessibility.',
+      process: 'User Login | Data Management | Automation | Reporting',
       result: '✔ Centralized system\n✔ Better customer management\n✔ Business growth',
       image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200',
       modalBg: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'The client was managing lead details manually, leading to unorganized data and missed interactions. We developed a scalable SaaS CRM to centralize data, automate follow-ups, and integrate with other communication tools.',
+        sections: [
+          {
+            title: 'Implementation Workflow',
+            icon: '💻',
+            explanation: 'A full-stack lead management platform built for efficiency and team collaboration.',
+            list: [
+              'Secure Role-Based Login',
+              'Centralized Lead Management',
+              'Automated Reminders & Tasks',
+              'Interactive Sales Reporting'
+            ],
+            businessValue: [
+              'Centralized data system',
+              'Improved relationships',
+              'Increased team efficiency',
+              'Total pipeline tracking'
+            ],
+            example: 'Login → Manage customer details → System triggers auto-reminders for callbacks → View sales performance.'
+          }
+        ]
+      }
     },
     { 
       title: 'MediFlow – Smart Healthcare System', 
       industry: 'Healthcare',
       tags: ['SaaS', 'Healthcare Tech', 'React'], 
       desc: 'Digitized records and automated scheduling for doctors.',
-      problem: 'Doctors were managing patient records and appointments manually, causing data mismanagement, time-consuming processes, and difficulty in tracking history.',
-      solution: 'We developed MediFlow, a custom SaaS-based healthcare application that digitizes patient records, automates appointment scheduling, and provides easy access to medical history.',
-      process: 'Patient Registration → Appointment Booking → Doctor Dashboard → Data Storage → Report Access',
-      subItems: [
-        { title: 'Doctor Dashboard', detail: 'Centralized command center for medical professionals.', example: 'Real-time overview of daily schedules.' },
-        { title: 'Appointment System', detail: 'Automated booking and slot management.', example: 'Reduces scheduling conflicts by 100%.' },
-        { title: 'Patient Record Management', detail: 'Secure digital storage of medical history.', example: 'Instant retrieval of old prescriptions.' },
-        { title: 'Automated Notifications', detail: 'SMS and email reminders for patients.', example: 'Improved attendance rates.' }
-      ],
-      result: '✔ Reduced manual work\n✔ Faster patient management\n✔ Improved accuracy\n✔ Better experience',
+      problem: 'Doctors were managing patient records and appointments manually, causing double-booking and difficulty in tracking history.',
+      solution: 'We developed MediFlow, a custom SaaS healthcare application to digitize patient records and automate clinical operations.',
+      process: 'Patient Registration | Appointment Booking | Doctor Dashboard | Data Storage | Report Access',
+      result: '✔ Reduced manual work\n✔ Faster patient management\n✔ 100% scheduling accuracy',
       image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1200',
-      modalBg: 'bg-pink-50',
-      accent: 'border-pink-200'
+      modalBg: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Manual record-keeping was slowing down doctors and patients alike. We developed MediFlow to automate appointments and digitize medical history for a faster, error-free clinical experience.',
+        sections: [
+          {
+            title: 'Core Features',
+            icon: '🏥',
+            explanation: 'Digitizing the patient journey from booking to prescription.',
+            list: [
+              'Doctor Command Center: Daily schedules in real-time.',
+              'Smart Booking: No double-bookings or conflicts.',
+              'Digital Records: Secure storage of patient medical history.',
+              'Instant Patient Alerts: SMS and email notifications.'
+            ],
+            businessValue: [
+              'Full digital workflow',
+              '100% efficient scheduling',
+              'Zero paperwork mistakes',
+              'Enhanced patient experience'
+            ],
+            example: 'Doctor sees live dashboard -> access patient history in 1 click -> schedule follow-up. Result: Better care, zero delay.'
+          }
+        ]
+      }
     }
   ];
 
@@ -2120,122 +2536,374 @@ const UseCasesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
     { 
       title: 'Customer Support Automation', 
       icon: <Bot />, 
-      desc: 'Instant replies and faster response time.', 
-      problem: 'Customers wait long time for replies',
-      solution: 'We automated support using AI chatbot + Zapier',
-      result: '• Instant replies\n• 70% faster response time\n• Improved customer satisfaction',
+      desc: 'AI-powered chatbot + Zapier automation.', 
+      problem: 'Many businesses face a common issue: customers have to wait a long time to get replies. High volume of messages causes delays and frustration.',
+      solution: 'We implemented an AI-powered chatbot integrated with automation tools like Zapier for instant 24/7 service.',
+      result: '✅ Instant Replies\n⚡ 70% Faster Response Time\n😊 Improved Customer Satisfaction',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'To solve manual query handling, we implemented an AI-powered chatbot integrated with automation tools like Zapier.',
+        sections: [
+          {
+            title: 'AI Chatbot Integration',
+            icon: '🤖',
+            explanation: 'Deployed chatbot on website / WhatsApp / Messenger to handle FAQs like pricing, services, and booking using NLP.',
+            list: ['Website & WhatsApp Bots', 'Natural Language Processing', 'Handling FAQs (Pricing, Services)'],
+            businessValue: ['Instant 24/7 Replies', 'Reduced Support Workload', 'Lead Capture'],
+            example: 'A company receives 100+ customer queries daily → AI chatbot handles themes automatically and reduces support workload instantly.'
+          },
+          {
+            title: 'Automation & Routing',
+            icon: '⚡',
+            explanation: 'Zapier connects the chatbot with CRMs and Email, while smart routing forwards complex issues to human agents.',
+            list: ['Zapier CRM Integration', 'Automated Lead Storage', 'Smart Routing to Human Agents', '24/7 Continuity'],
+            businessValue: ['Zero Manual Entry', 'Lead Capture Efficiency', 'Improved UX'],
+            example: 'New query → stored in database. Lead inquiry → sent to sales team instantly. Complaint → assigned to support agent.'
+          }
+        ]
+      }
     },
     { 
       title: 'Marketing Performance Dashboard', 
       icon: <BarChart3 />, 
-      desc: 'Real-time insights and decision making.', 
-      problem: 'Client unable to track ad performance',
-      solution: 'Created dashboard using Looker Studio',
-      result: '• Real-time insights\n• Better decision making\n• Increased ROI',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      desc: 'Real-time marketing insights across all platforms.', 
+      problem: 'Businesses struggle to track marketing performance across multiple platforms (Facebook, Google, LinkedIn, etc.) leading to fragmented data and wasted budget.',
+      solution: 'We built a unified Marketing Performance Dashboard using Looker Studio to track ROI and KPIs of all channels in one place.',
+      result: '✅ 100% Channel Tracking\n⚡ Real-time ROI Insights\n📈 Optimized Budget Allocation',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Connects all your marketing data sources into one interactive hub to provide a single source of truth for growth metrics.',
+        sections: [
+          {
+            title: 'Full-Funnel Tracking',
+            icon: '🔗',
+            explanation: 'Integrating Meta Ads, Google Ads, LinkedIn, and GA4 to visualize the entire customer journey from click to conversion.',
+            list: ['Multi-Channel Integration', 'Real-time KPI Tracking', 'Conversion Path Mapping'],
+            businessValue: ['Unified Data View', 'Budget Efficiency', 'Data-Driven Growth'],
+            example: 'Marketing manager sees all campaign costs and results in one dashboard. Result: Wasted spend identified and cut by 20%.'
+          },
+          {
+            title: 'ROI Intelligence',
+            icon: '🧠',
+            explanation: 'Automated calculation of ROI and CAC (Customer Acquisition Cost) across all platforms for faster decision making.',
+            list: ['Automated ROI Reports', 'CAC vs LTV Tracking', 'Predicted Performance Alerts'],
+            businessValue: ['Faster Decisions', 'Accountability', 'Strategic Clarity'],
+            example: 'Dashboard sends alert when CAC exceeds target. Team adjusts ads instantly, preserving profit margins.'
+          }
+        ]
+      }
     },
     { 
       title: 'Business Process Automation', 
       icon: <Settings />, 
-      desc: 'Reduced manual work and saved time.', 
-      problem: 'Manual data entry & repetitive tasks',
-      solution: 'Automated workflows using n8n',
-      result: '• Reduced manual work\n• Saved time\n• Increased productivity',
+      desc: 'Reduced manual work and saved time with n8n.', 
+      problem: 'Many companies struggle with manual data entry and repetitive tasks (emails, reports) which slow down operations.',
+      solution: 'We implemented automated workflows using n8n to connect tools and eliminate manual copy-pasting.',
+      result: '✅ Reduced Manual Work\n⏳ Saved Time (Hours to Seconds)\n🚀 Increased Productivity',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Workflow automation setup using n8n to connect CRM, Google Sheets, Email, and APIs for seamless operations.',
+        sections: [
+          {
+            title: 'Trigger-Based Actions',
+            icon: '⚡',
+            explanation: 'Automation starts when a specific event occurs, such as a form submission, ensuring data is moved instantly.',
+            list: ['New Form Submission Sync', 'Real-time Data Integration', 'No Manual Copy-Paste'],
+            businessValue: ['Zero Human Error', 'Real-time Sync', 'Higher Efficiency'],
+            example: 'New form submission → data automatically saved. New lead → added to CRM instantly. No human effort required.'
+          },
+          {
+            title: 'Logic & Productivity',
+            icon: '🚀',
+            explanation: 'Conditional workflows handle complex processes, sending automatic emails and updates without manual effort.',
+            list: ['Conditional (If/Else) Workflows', 'Task & Report Automation', 'Focus on Strategy'],
+            businessValue: ['Scalable Operations', 'Reduced Operational Cost', 'Team Morale Boost'],
+            example: 'Tasks that took hours are completed in seconds. Team can focus on important work like strategy and growth.'
+          }
+        ]
+      }
     },
     { 
       title: 'SaaS CRM Development', 
       icon: <Layers />, 
       desc: 'Centralized data and automated follow-ups.', 
-      problem: 'Client managing leads manually',
-      solution: 'Developed custom SaaS CRM system',
-      result: '• Centralized data\n• Automated follow-ups\n• Better customer management',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      problem: 'Lead data scattered across multiple platforms (Excel, WhatsApp), missed follow-ups, and no visibility of pipeline.',
+      solution: 'Developed custom SaaS CRM to manage leads, track interactions, and automate follow-ups in one place.',
+      result: '📌 Centralized Data\n🔁 Automated Follow-Ups\n🤝 Better Customer Management',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Cloud-based platform where businesses manage customer data, track sales, and automate communications.',
+        sections: [
+          {
+            title: 'Main Features',
+            icon: '⚙️',
+            explanation: 'A centralized dashboard giving real-time updates and full control over lead status from intake to conversion.',
+            list: ['Centralized Dashboard', 'Lead Status Tracking (New to Converted)', 'Team Assignment Tools'],
+            businessValue: ['Complete Pipeline Visibility', 'Data Security', 'No Confusion'],
+            example: 'Capture leads from website/ads → Assign to team members → Track status in real-time on one screen.'
+          },
+          {
+            title: 'Automation & History',
+            icon: '🔁',
+            explanation: 'Automatic email and SMS reminders ensure no lead is missed, while activity tracking maintains full customer history.',
+            list: ['Auto Email/SMS Reminders', 'Call & Meeting Logging', 'Complete History Tracking'],
+            businessValue: ['Improved Conversion Rate', 'Better Relationships', 'Scalable Management'],
+            example: 'System sends auto-reminders to clients for follow-ups. Result: No missed opportunities and higher closing ratios.'
+          }
+        ]
+      }
     },
     { 
       title: 'IT Staffing Solution', 
       icon: <Briefcase />, 
-      desc: 'Faster hiring and reduced cost.', 
-      problem: 'Company unable to find skilled developers quickly',
-      solution: 'Provided pre-screened developers',
-      result: '• Faster hiring\n• Reduced cost\n• Improved project delivery',
+      desc: 'Ready-to-join technical talent pool.', 
+      problem: 'Long hiring cycles (months), difficulty finding specialized talent, and project delays due to unfilled positions.',
+      solution: 'We provide pre-screened, highly skilled developers (frontend, backend, AI) ready to join immediately.',
+      result: '⚡ Faster Hiring (Days, not months)\n💰 Reduced Recruitment Cost\n🚀 Improved Project Delivery',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Bridging the skill gap by delivering suitable developer profiles within a short time from a verified talent pool.',
+        sections: [
+          {
+            title: 'Screening Protocol',
+            icon: '🎯',
+            explanation: 'Candidates are verified through technical assessments, coding tests, and deep interview evaluations for high quality.',
+            list: ['Technical Assessments', 'Verified Talent Pool', 'Coding Proof-of-Skill'],
+            businessValue: ['Qualified Hires Only', 'Zero Risk Talent', 'Immediate Start'],
+            example: 'Technical tests conducted for every candidate ensure project-readiness. Candidates verified for AI, React, Node, etc.'
+          },
+          {
+            title: 'Hiring Models',
+            icon: '🚀',
+            explanation: 'Flexible engagement options including full-time hiring, contract-based roles, or remote offshore teams.',
+            list: ['Full-time Hiring', 'Contract-based Models', 'Remote/Offshore Teams', 'End-to-End Support'],
+            businessValue: ['Cost Optimization', 'Operational Efficiency', 'Speed to Market'],
+            example: 'Reduced hiring time from months to days. Urgent project needs developer -> suitable profiles delivered instantly.'
+          }
+        ]
+      }
     },
     { 
       title: 'Lead Management Automation', 
       icon: <Mail />, 
-      desc: '100% lead tracking and increased conversions.', 
-      problem: 'Leads getting lost from website forms',
-      solution: 'Used Zapier to capture & store leads',
-      result: '• 100% lead tracking\n• Faster response\n• Increased conversions',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      desc: 'Zapier-based tracking and acting.', 
+      problem: 'Form submissions get missed/ignored, no centralized storage, and slow response leads to lost customers.',
+      solution: 'Implemented lead capture and automation using Zapier to ensure every lead is tracked and acted upon instantly.',
+      result: '📌 100% Lead Tracking\n⚡ Faster Response\n📈 Increased Conversions',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Ensure no data loss by automating the bridge between your website and your sales systems.',
+        sections: [
+          {
+            title: 'Capture & Store',
+            icon: '📌',
+            explanation: 'Every form submission is instantly captured and stored in tools like CRM or Google Sheets automatically.',
+            list: ['Automatic Lead Capture', 'Centralized Data Integration', 'Data Duplication Guard'],
+            businessValue: ['Zero Data Loss', 'Organized Growth', 'Real-time Tracking'],
+            example: 'Form submitted on website → Lead stored in Sheets & CRM instantly. Total leads tracked: 100%.'
+          },
+          {
+            title: 'Alert & Follow-up',
+            icon: '⚡',
+            explanation: 'Sales team receives real-time alerts while customers get an immediate automated welcome message.',
+            list: ['Instant Sales Alerts (Email/Slack)', 'Automated Instant Follow-ups', 'Engagement Boost'],
+            businessValue: ['Faster Response', 'High Retention', 'Improved Trust'],
+            example: 'Lead заполняет form → Sales team gets Slack alert → Auto-email sent to Lead. Result: Engaged instantly.'
+          }
+        ]
+      }
     },
     { 
       title: 'Sales Reporting Automation', 
       icon: <BarChart />, 
-      desc: 'Daily automated reports and accurate data.', 
-      problem: 'Manual report creation takes time',
-      solution: 'Automated reports using dashboards',
-      result: '• Daily automated reports\n• Accurate data\n• Time saving',
+      desc: 'Trinexiss Intelligence Hub Integration.', 
+      problem: 'Manual report creation is slow, error-prone, and uses data from multiple disconnected sources (Excel, Ads, etc.).',
+      solution: 'Automated the entire reporting system using smart dashboards and data tools like Looker Studio.',
+      result: '📅 Daily Automated Reports\n🎯 Accurate Data\n⏳ Time Saving',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Trinexiss Intelligence Hub automates data flow from CRM and marketing platforms into central live dashboards.',
+        sections: [
+          {
+            title: 'Data Flow',
+            icon: '🔗',
+            explanation: 'Connected multiple data sources so that data flows automatically into a central system for visualization.',
+            list: ['CRM & Analytics Sync', 'Centralized System Architecture', 'No Manual Entry Error'],
+            businessValue: ['Reliable Insights', 'Zero Calculation Error', 'Consistency'],
+            example: 'Data from Facebook, Google Ads, and CRM unified into one report. No more Excel spreadsheets.'
+          },
+          {
+            title: 'Insights & Delivery',
+            icon: '📊',
+            explanation: 'Reports are generated automatically on a schedule and delivered via email, providing real-time tracking.',
+            list: ['Automated Dashboards', 'Scheduled Email Reporting', 'Live Performance Tracking'],
+            businessValue: ['Quick Decision Making', 'Strategy Focus', 'Accurate ROI Tracking'],
+            example: 'CEO gets a daily morning performance report automatically. Result: Saves hours of manual team work every day.'
+          }
+        ]
+      }
     },
     { 
       title: 'AI-Based Email Classification', 
       icon: <Inbox />, 
-      desc: 'Smart routing and automated sorting.', 
-      problem: 'Company receives hundreds of emails daily (spam, queries, complaints)',
-      solution: 'Built automation using n8n + AI to read and route emails instantly.',
-      result: '• 80% faster email handling\n• No manual sorting needed\n• Improved team efficiency',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      desc: 'Intelligent AI-powered email routing.', 
+      problem: 'Handling hundreds of emails (spam, queries, complaints) manually causes delays, overload, and missed priorities.',
+      solution: 'Built an AI-powered automation system using n8n to intelligently read, classify, and route emails.',
+      result: '⚡ 80% Faster Email Handling\n🤖 No Manual Sorting Needed\n🚀 Improved Team Efficiency',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'System continuously monitors incoming emails and uses AI models to understand intent and route tasks.',
+        sections: [
+          {
+            title: 'Classification logic',
+            icon: '🧠',
+            explanation: 'AI categorizes emails into Spam, Customer Query, Complaint, or Sales Inquiry based on content analysis.',
+            list: ['Intent Recognition', 'Spam Filtering', 'Priority Handling'],
+            businessValue: ['Zero Manual Sorting', 'Fast Response', 'Focused Teams'],
+            example: 'Incoming email: "I have a problem with my bill" → AI Tags "Complaint" → Sets "Urgent" → Routes to Billing Team.'
+          },
+          {
+            title: 'Automated Workflows',
+            icon: '⚡',
+            explanation: 'Using n8n, specific actions are triggered such as auto-replies, notifications, and CRM updates instantly.',
+            list: ['Auto-Replied FAQs', 'Sales Lead Routing', 'CRM Sync', 'Slack Notifications'],
+            businessValue: ['80% Speed Boost', 'Productivity Maximized', 'No Missed Comms'],
+            example: 'Sales inquiry detected → forwarded instantly to sales rep → Added to CRM. Result: Lead captured in seconds.'
+          }
+        ]
+      }
     },
     { 
       title: 'E-commerce Order Automation', 
       icon: <Package />, 
-      desc: 'Zero manual errors in fulfillment chains.', 
-      problem: 'Manual order processing takes time and leads to errors',
-      solution: 'Automated workflow using Zapier for invoices and notifications.',
-      result: '• Faster order processing\n• Zero manual entry errors\n• Better customer experience',
+      desc: 'Seamless zero-manual order processing.', 
+      problem: 'Manual entry, slow invoice generation, and lack of timely updates create errors and poor customer experience.',
+      solution: 'Automated the entire order processing workflow using Zapier for error-free operations.',
+      result: '⚡ Faster Order Processing\n✅ Zero Manual Entry Errors\n😊 Better Customer Experience',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Connects your store to invoices, CRM, and notifications to handle high order volumes flawlessly.',
+        sections: [
+          {
+            title: 'Capture & Doc Gen',
+            icon: '🚚',
+            explanation: 'Orders are captured instantly from the website and invoices are generated automatically upon purchase.',
+            list: ['Instant Order Capture', 'Auto Invoice Generation', 'Zero Manual Entry'],
+            businessValue: ['Speed-to-Fulfillment', 'Reliability', 'Resource Efficiency'],
+            example: 'Order placed → Invoice generated and shared with customer instantly → Data stored in CRM.'
+          },
+          {
+            title: 'Notifications & Sync',
+            icon: '📱',
+            explanation: 'Customers receive immediate updates via email/SMS while data is synced across your entire stack.',
+            list: ['Real-Time Store Sync', 'Instant Customer Notifications', 'Centralized Data Management'],
+            businessValue: ['Trust Building', 'Reduced Support Load', 'Seamless Fulfillment'],
+            example: 'Customer receives confirmation within seconds of purchase. No human mistakes in shipping data.'
+          }
+        ]
+      }
     },
     { 
       title: 'HR Recruitment Automation', 
       icon: <Search />, 
-      desc: 'AI-based screening and candidate vetting.', 
-      problem: 'HR teams buried under manual resume checks',
-      solution: 'Implemented AI parsing and automated interview scheduling.',
-      result: '• Reduced hiring lead time\n• Better candidate selection\n• Fully automated HR process',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      desc: 'AI-powered parsing and scheduling.', 
+      problem: 'HR teams overwhelmed by manual resume screening, slow shortlisting, and manual scheduling coordination.',
+      solution: 'Implemented AI-powered recruitment with resume parsing and automated interview scheduling.',
+      result: '⚡ Reduced Hiring Lead Time\n🎯 Better Candidate Selection\n🤖 Fully Automated HR Process',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Intelligent system to filter, rank, and schedule candidates with minimal manual intervention.',
+        sections: [
+          {
+            title: 'AI Resume Ranking',
+            icon: '🔎',
+            explanation: 'AI scans resumes to extract skills and qualifications, automatically matching profiles with job requirements.',
+            list: ['AI Resume Parsing', 'Skill & Experience Extraction', 'Smart Shortlisting'],
+            businessValue: ['No Qualified Candidate Missed', 'Faster Screening', 'Unbiased Decisions'],
+            example: '500 resumes scanned → AI ranks top 10 most relevant in minutes. No more manual sorting of piles.'
+          },
+          {
+            title: 'Auto Scheduling',
+            icon: '🗓️',
+            explanation: 'Candidates receive automated invites and can select time slots that sync directly with HR calendars.',
+            list: ['Calendar Integration', 'Auto Interview Invites', 'Real-time Status Updates'],
+            businessValue: ['Better Candidate CX', 'Zero Coordination Delay', 'Maximum Hiring Velocity'],
+            example: 'Candidate selected → Invite sent automatically via calendar integration → Time slot chosen by candidate instantly.'
+          }
+        ]
+      }
     },
     { 
       title: 'Cybersecurity Alert Automation', 
       icon: <Lock />, 
-      desc: 'Proactive threat detection and logging.', 
-      problem: 'Security alerts not monitored properly in real-time',
-      solution: 'Automated alerts system using custom intelligent workflows.',
-      result: '• Faster threat detection\n• Improved system security\n• Reduced operational risk',
+      desc: 'Intelligent real-time threatmonitoring.', 
+      problem: 'Large volumes of alerts lead to slow response and critical threats going unnoticed by overwhelmed teams.',
+      solution: 'Developed custom intelligent alert system using AI-driven logic to filter noise and route critical threats.',
+      result: '⚡ Faster Threat Detection\n🔐 Improved System Security\n📉 Reduced Operational Risk',
       color: 'bg-purple-50',
-      accent: 'border-purple-200'
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'System continuously monitors logs and networks, identifying and escalating critical incidents instantly.',
+        sections: [
+          {
+            title: 'Intelligent Filtering',
+            icon: '🛡️',
+            explanation: 'AI-driven logic separates noise and low-priority alerts from true critical cybersecurity threats.',
+            list: ['Real-Time Log Monitoring', 'AI Noise Filtering', 'Instant Prioritization'],
+            businessValue: ['Focus on Real Danger', 'Reduced Fatigue', 'Faster MTTR'],
+            example: 'Captured 50,000 alerts → AI filters out 49,990 false positives → 10 critical threats escalated instantly.'
+          },
+          {
+            title: 'Alert Routing',
+            icon: '⚡',
+            explanation: 'Critical alerts are sent to the right teams via Slack/SMS to trigger predefined blocking actions.',
+            list: ['Slack/SMS Integration', 'Automated Threat Blocking', 'Unified Dashboard Entry'],
+            businessValue: ['Real-Time Action', 'Compliance Ready', 'Zero Response Lag'],
+            example: 'Threat detected → sent to Security Team → Anomaly blocked instantly via automated protocol.'
+          }
+        ]
+      }
     },
     { 
       title: 'Real-Time Business Dashboard', 
       icon: <BarChart3 />, 
-      desc: 'Unified visibility across all platforms.', 
-      problem: 'Business data scattered in multiple unreachable tools',
-      solution: 'Unified dashboard using Microsoft Power BI for live tracking.',
-      result: '• One dashboard for all data\n• Real-time performance tracking\n• Better executive decision making',
-      color: 'bg-pink-50',
-      accent: 'border-pink-200'
+      desc: 'Unified visibility via Power BI.', 
+      problem: 'Data scattered across tools (CRM, Excel, Ads) leads to poor visibility and delayed executive decisions.',
+      solution: 'Built a unified real-time dashboard using Microsoft Power BI to centralize and visualize all business data.',
+      result: '📊 Unified Dashboard\n⚡ Real-Time Tracking\n🧠 Better Strategic Decisions',
+      color: 'bg-purple-50',
+      accent: 'border-purple-200',
+      deepDive: {
+        overview: 'Live tracking of KPIs (sales, revenue, performance) accessible anytime on a single source of truth.',
+        sections: [
+          {
+            title: 'Uni-View Integration',
+            icon: '📊',
+            explanation: 'Connected multiple data sources (CRM, Ads, Sheets) into one central interactive visualization system.',
+            list: ['CRM & Financial Integration', 'Live Data Connections', 'Drill-Down Capabilities'],
+            businessValue: ['One Single Truth', 'Zero Information Silos', 'Transparency'],
+            example: 'Data from all departments synced automatically into a clean, interactive executive dashboard.'
+          },
+          {
+            title: 'Real-Time Insights',
+            icon: '🧠',
+            explanation: 'Dashboard updates automatically with live data, helping identify trends and issues as they happen.',
+            list: ['Auto-Refreshing Metrics', 'Live KPI Monitoring', 'Accessible Anywhere'],
+            businessValue: ['Faster Strategy Adjustment', 'Accurate Reporting', 'Operational Control'],
+            example: 'Manager sees a performance dip in one region instantly → Corrects strategy same-day → Result: Protected revenue.'
+          }
+        ]
+      }
     }
   ];
 
@@ -2335,144 +3003,150 @@ const UseCasesPage = ({ onItemClick }: { onItemClick: (item: DetailItem) => void
 };
 
 const ContactPage = () => {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+  useEffect(() => {
+    // JotForm Script
+    const jotScript = document.createElement('script');
+    jotScript.src = 'https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js';
+    jotScript.async = true;
+    document.body.appendChild(jotScript);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    // In a real app, you would send the data to a server here
-  };
+    jotScript.onerror = () => {
+      console.error('Failed to load JotForm script');
+    };
 
-  if (submitted) {
-    return (
-      <div className="pt-32 pb-24 min-h-[60vh] flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-16 text-center max-w-xl mx-auto border-brand-purple/20 shadow-2xl"
-        >
-          <div className="w-20 h-20 bg-brand-purple/10 text-brand-purple rounded-full flex items-center justify-center mx-auto mb-8">
-            <CheckCircle2 size={40} />
-          </div>
-          <h2 className="text-3xl font-display font-bold text-slate-900 mb-4 uppercase tracking-tighter">Message Sent!</h2>
-          <p className="text-slate-600 mb-10 text-lg">Thank you for Reaching out. Our team will get back to you within 24 hours.</p>
-          <button 
-            onClick={() => setSubmitted(false)}
-            className="btn-gradient px-12"
-          >
-            Send Another Message
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+    jotScript.onload = () => {
+      // @ts-ignore
+      if (window.jotformEmbedHandler) {
+        try {
+          // @ts-ignore
+          window.jotformEmbedHandler("iframe[id='JotFormIFrame-261285410544049']", "https://form.jotform.com/");
+        } catch (err) {
+          console.error('Error initializing JotForm handler:', err);
+        }
+      }
+    };
+
+    // Calendly Script
+    const calScript = document.createElement('script');
+    calScript.src = 'https://assets.calendly.com/assets/external/widget.js';
+    calScript.async = true;
+    document.body.appendChild(calScript);
+
+    return () => {
+      if (document.body.contains(jotScript)) {
+        document.body.removeChild(jotScript);
+      }
+      if (document.body.contains(calScript)) {
+        document.body.removeChild(calScript);
+      }
+    };
+  }, []);
 
   return (
     <div className="pt-32 pb-24">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
-          <div>
-            <h1 className="text-5xl font-display font-bold text-slate-900 mb-8 font-display">Get In Touch</h1>
-            <p className="text-xl text-slate-500 mb-12">Have a question or a project in mind? We'd love to hear from you. Experience the Trinexiss difference.</p>
-            
-            <div className="space-y-8 mb-12">
-              <div className="flex items-start gap-4">
-                 <div className="w-12 h-12 bg-brand-purple/10 text-brand-purple rounded-xl flex items-center justify-center shrink-0">
-                    <MapPin />
-                 </div>
-                 <div>
-                   <h4 className="font-bold text-slate-900 mb-1">Visit Us</h4>
-                   <p className="text-slate-500 tracking-tight">Office No 1044, Gera's Imperium Rise, Hinjewadi Phase 2, Maharashtra 411057</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                 <div className="w-12 h-12 bg-brand-blue/10 text-brand-blue rounded-xl flex items-center justify-center shrink-0">
-                    <Mail />
-                 </div>
-                 <div>
-                   <h4 className="font-bold text-slate-900 mb-1">Email Us</h4>
-                   <p className="text-slate-700 font-medium">info@trinexiss.com</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-4">
-                 <div className="w-12 h-12 bg-brand-pink/10 text-brand-pink rounded-xl flex items-center justify-center shrink-0">
-                    <Phone />
-                 </div>
-                 <div>
-                   <h4 className="font-bold text-slate-900 mb-1">Call Us</h4>
-                   <p className="text-slate-800 font-bold">+91 7774051885</p>
-                 </div>
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-6 text-center mb-20">
+        <h1 className="text-5xl font-display font-bold text-slate-900 mb-8 font-display uppercase tracking-tight">Get In Touch</h1>
+        <p className="text-xl text-slate-500 max-w-3xl mx-auto">Have a question or a project in mind? We'd love to hear from you. Experience the Trinexiss difference.</p>
+      </div>
 
-            <div className="w-full aspect-video bg-slate-900 rounded-[3rem] overflow-hidden relative shadow-2xl group border-8 border-white">
-               <img 
-                 src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200" 
-                 alt="Our Office" 
-                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 select-none grayscale group-hover:grayscale-0"
-                 referrerPolicy="no-referrer"
-               />
-               <div className="absolute inset-0 bg-gradient-to-tr from-brand-purple/40 to-transparent"></div>
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white scale-0 group-hover:scale-100 transition-transform duration-500">
-                  <MapPin size={32} />
-               </div>
+      <div className="max-w-7xl mx-auto px-6 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all">
+            <div className="w-14 h-14 bg-brand-purple/10 text-brand-purple rounded-2xl flex items-center justify-center mb-6">
+              <MapPin />
             </div>
+            <h4 className="font-display font-bold text-slate-900 mb-2 text-xl tracking-tight uppercase">Visit Us</h4>
+            <p className="text-slate-500 tracking-tight leading-relaxed">Office No 1044, Gera's Imperium Rise, Hinjewadi Phase 2, Maharashtra 411057</p>
           </div>
+          <div className="p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all">
+            <div className="w-14 h-14 bg-brand-blue/10 text-brand-blue rounded-2xl flex items-center justify-center mb-6">
+              <Mail />
+            </div>
+            <h4 className="font-display font-bold text-slate-900 mb-2 text-xl tracking-tight uppercase">Email Us</h4>
+            <p className="text-slate-700 font-bold text-lg">info@trinexiss.com</p>
+          </div>
+          <div className="p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all">
+            <div className="w-14 h-14 bg-brand-pink/10 text-brand-pink rounded-2xl flex items-center justify-center mb-6">
+              <Phone />
+            </div>
+            <h4 className="font-display font-bold text-slate-900 mb-2 text-xl tracking-tight uppercase">Call Us</h4>
+            <p className="text-slate-800 font-bold text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-brand-purple to-brand-pink">+91 7774051885</p>
+          </div>
+        </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
+          {/* Office Photo Column - Now on the left of the form */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="w-full h-full bg-slate-900 rounded-[3rem] overflow-hidden relative shadow-xl group border border-slate-100"
+          >
+             <img 
+               src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000" 
+               alt="Our Office" 
+               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 select-none grayscale group-hover:grayscale-0 opacity-60 hover:opacity-100 transition-opacity"
+               referrerPolicy="no-referrer"
+             />
+             <div className="absolute inset-0 bg-gradient-to-tr from-brand-purple/20 to-transparent"></div>
+             <div className="absolute bottom-10 left-10 text-white">
+                <h4 className="font-display font-bold text-3xl uppercase tracking-tighter">Corporate Headquarters</h4>
+                <p className="text-white/60 font-medium">Pune, India</p>
+             </div>
+          </motion.div>
+
+          {/* JotForm Requirement Column */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-8 flex flex-col"
+          >
+            <div className="mb-0 text-center lg:text-left">
+              <span className="text-brand-pink text-[9px] font-bold tracking-[0.4em] mb-3 block uppercase leading-none">Requirement Form</span>
+              <h2 className="text-2xl font-display font-bold text-slate-900 mb-3 tracking-tight uppercase">Requirement Collection</h2>
+              <p className="text-slate-500 mb-8 text-sm">Fill out details about your project for a faster response.</p>
+            </div>
+            <div className="bg-slate-50 rounded-3xl overflow-hidden border border-slate-100 h-full">
+              <iframe
+                id="JotFormIFrame-261285410544049"
+                title="Requirement Collection"
+                onLoad={() => window.scrollTo(0,0)}
+                allow="geolocation; microphone; camera; fullscreen; payment"
+                src="https://form.jotform.com/261285410544049"
+                style={{ minWidth: "100%", maxWidth: "100%", height: "580px", border: "none" }}
+                scrolling="no"
+              >
+              </iframe>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Calendly Consultation Section - Moved below */}
+        <div className="mt-20">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-12"
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-8 lg:p-12 flex flex-col"
           >
-            <h3 className="text-2xl font-display font-bold text-slate-900 mb-8">Send Us a Message</h3>
-            <form className="space-y-6" onSubmit={handleSubmit}>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Name</label>
-                 <input 
-                    type="text" 
-                    required
-                    className="w-full bg-purple-50/50 border border-purple-100 rounded-2xl px-6 py-4 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all font-display"
-                    placeholder="John Doe"
-                    value={form.name}
-                    onChange={(e) => setForm({...form, name: e.target.value})}
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Email</label>
-                 <input 
-                    type="email" 
-                    required
-                    className="w-full bg-purple-50/50 border border-purple-100 rounded-2xl px-6 py-4 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all font-display"
-                    placeholder="john@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({...form, email: e.target.value})}
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Phone</label>
-                 <input 
-                    type="tel" 
-                    className="w-full bg-purple-50/50 border border-purple-100 rounded-2xl px-6 py-4 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all font-display"
-                    placeholder="+91 00000 00000"
-                    value={form.phone}
-                    onChange={(e) => setForm({...form, phone: e.target.value})}
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Message</label>
-                 <textarea 
-                    className="w-full bg-purple-50/50 border border-purple-100 rounded-2xl px-6 py-4 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all min-h-[150px] font-display"
-                    placeholder="How can we help you?"
-                    value={form.message}
-                    onChange={(e) => setForm({...form, message: e.target.value})}
-                 />
-               </div>
-               <button type="submit" className="btn-gradient w-full py-5 text-lg">Send Message</button>
-            </form>
+            <div className="mb-8 text-center">
+              <span className="text-brand-purple text-[9px] font-bold tracking-[0.4em] mb-3 block uppercase leading-none">Quick Booking</span>
+              <h2 className="text-3xl font-display font-bold text-slate-900 mb-3 tracking-tight uppercase">Schedule Consultation</h2>
+              <p className="text-slate-500 max-w-2xl mx-auto text-sm">Book a 30-minute introductory call with our technical team to discuss your project requirements in depth.</p>
+            </div>
+            <div className="bg-slate-50 rounded-[2rem] overflow-hidden border border-slate-100">
+              <div 
+                className="calendly-inline-widget" 
+                data-url="https://calendly.com/chaskarshruti17/30min" 
+                style={{ minWidth: '100%', height: '600px' }}
+              >
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
+
     </div>
   );
 };
@@ -2511,7 +3185,7 @@ export default function App() {
             {page === 'services' && <ServicesPage onItemClick={setSelectedItem} />}
             {page === 'about' && <AboutPage setPage={setPage} />}
             {page === 'team' && <TeamPage setPage={setPage} />}
-            {page === 'careers' && <CareersPage onItemClick={setSelectedItem} />}
+            {page === 'careers' && <CareersPage />}
             {page === 'portfolio' && <PortfolioPage onItemClick={setSelectedItem} />}
             {page === 'use-cases' && <UseCasesPage onItemClick={setSelectedItem} />}
             {page === 'contact' && <ContactPage />}
